@@ -1,0 +1,250 @@
+import { CircleUserRound, Cog, SunMoon } from "lucide-react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import bkg from "./bkg.jpg";
+
+function Login() {
+    const navigate = useNavigate();
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        const username = e.target.username.value;
+        const password = e.target.password.value;
+
+        // Simple login check — you can replace with backend logic later
+        if (username === "admin" && password === "1234") {
+            // alert("Login Successful!");
+            navigate("/connecteddatabase"); // ✅ Redirects to Dashboard
+        } else {
+            alert("Invalid Username/Password");
+        }
+    };
+
+    const handleGoogleLogin = () => {
+        alert("Google Login Clicked!");
+    };
+
+    const ForgotPassword = () => {
+        alert("Forgot Password Clicked!");
+    };
+
+    const styles = {
+        container: {
+            minHeight: "100vh",
+            minWidth: "100vw",
+            backgroundImage: `url(${bkg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: "fixed",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            fontFamily: "Poppins, sans-serif",
+            color: "white",
+            gap: "20px",
+        },
+        iconGroup: {
+            display: "flex",
+            alignItems: "center",
+            gap: "30px",
+        },
+        circleIcon: {
+            minWidth: "2vw",
+            minHeight: "4vh",
+            borderRadius: "50%",
+            background: "white",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            cursor: "pointer",
+        },
+        navbtn: {
+            background: "none",
+            border: "none",
+        },
+        boxx: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            padding: "10px 20px",
+            minWidth: "10vw",
+            borderRadius: "35px",
+            border: "2px solid transparent",
+            backgroundImage:
+                "linear-gradient(#25257F, #1B1B37), linear-gradient(45deg, #D9B8DF, #5E15D4)",
+            backgroundOrigin: "border-box",
+            backgroundClip: "padding-box, border-box",
+            color: "white",
+            fontWeight: "bold",
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+        },
+        forgotbtn: {
+            background: "none",
+            border: "none",
+            padding: "0",
+            color: "#cfcfcf",
+            cursor: "pointer",
+            fontSize: "1rem",
+        },
+        box: {
+            background: "rgba(255, 255, 255, 0.05)",
+            borderRadius: "35px",
+            padding: "40px",
+            minWidth: "50vw",
+            minHeight: "30vh",
+            textAlign: "center",
+            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.3)", // a bit deeper shadow for contrast
+            backdropFilter: "blur(2px)",  // stronger blur for better glass feel
+            // WebkitBackdropFilter: "blur(10px)", // for Safari compatibility
+            border: "1px solid rgba(255, 255, 255, 0.2)", // subtle border for depth
+        },
+        heading: {
+            fontSize: "2rem",
+            fontWeight: "700",
+            marginBottom: "1px",
+        },
+        subtitle: {
+            fontSize: "1.1rem",
+            color: "#d0d0d0",
+            marginBottom: "25px",
+        },
+        input: {
+            minWidth: "70%",
+            padding: "12px 15px",
+            marginBottom: "15px",
+            border: "2px solid transparent",
+            borderRadius: "15px",
+            outline: "none",
+            fontSize: "0.95rem",
+            color: "white",
+            backgroundImage:
+                "linear-gradient(90deg, #25257F, #1B1B37), linear-gradient(45deg, #003CFF, #E3DBE5)",
+            backgroundOrigin: "border-box",
+            backgroundClip: "padding-box, border-box",
+        },
+        options: {
+            width: "70%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "1.2rem",
+            margin: "0 auto 20px",
+        },
+        link: {
+            color: "#cfcfcf",
+            textDecoration: "none",
+        },
+        signupBtn: {
+            minWidth: "30%",
+            padding: "10px",
+            borderRadius: "55px",
+            border: "2.5px solid transparent",
+            backgroundImage:
+                "linear-gradient(90deg, #7FE7FF, #37376F), linear-gradient(92deg, #D9B8DF, #5E15D4)",
+            color: "white",
+            fontWeight: "bold",
+            cursor: "pointer",
+            transition: "0.3s",
+            backgroundOrigin: "border-box",
+            backgroundClip: "padding-box, border-box",
+            position: "relative",
+        },
+        googleBtn: {
+            marginTop: "15px",
+            color: "#fff",
+            borderRadius: "25px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "10px",
+            gap: "10px",
+            cursor: "pointer",
+            fontWeight: "500",
+            transition: "0.3s",
+        },
+        googleIcon: { width: "20px" },
+    };
+
+    return (
+        <div style={styles.container}>
+            {/* Top Icon Bar */}
+            <div style={styles.boxx}>
+                <div style={styles.iconGroup}>
+                    <div style={styles.circleIcon}>
+                        <button style={styles.navbtn}><Cog /></button>
+                    </div>
+                    <div style={styles.circleIcon}>
+                        <button style={styles.navbtn}><CircleUserRound /></button>
+                    </div>
+                    <div style={styles.circleIcon}>
+                        <button style={styles.navbtn}><SunMoon size={28} strokeWidth={1.75} /></button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Login Box */}
+            <div style={styles.box}>
+                <h1 style={styles.heading}>DEX</h1>
+                <p style={styles.subtitle}>Secure Access</p>
+
+                {/* ✅ Wrapped in a form so handleSubmit works properly */}
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Email / Username"
+                        style={styles.input}
+                        required
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        style={styles.input}
+                        required
+                    />
+
+                    <div style={styles.options}>
+                        <div className="form-check form-switch">
+                            <input
+                                className="form-check-input"
+                                type="checkbox"
+                                id="flexSwitchCheckDefault"
+                            />
+                            <label
+                                className="form-check-label ms-2"
+                                htmlFor="flexSwitchCheckDefault"
+                            >
+                                Remember me
+                            </label>
+                        </div>
+
+                        <button type="button" onClick={ForgotPassword} style={styles.forgotbtn}>
+                            Forgot Password?
+                        </button>
+                    </div>
+
+                    <button type="submit" style={styles.signupBtn}>
+                        LOGIN
+                    </button>
+                </form>
+
+                <div style={styles.googleBtn} onClick={handleGoogleLogin}>
+                    <img
+                        src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                        alt="Google"
+                        style={styles.googleIcon}
+                    />
+                    <span>Continue with Google</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default Login;
