@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import bkg from "./bkg.jpg";
 import bkg2 from "./bkg2.png"; // Light theme background
+import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap CSS
 
 function Login() {
     const navigate = useNavigate();
@@ -84,7 +85,7 @@ function Login() {
             background: "none",
             border: "none",
             padding: "0",
-            color: "#cfcfcf",
+            color: isDarkMode ? "#cfcfcf" : "#000000",
             cursor: "pointer",
             fontSize: "1rem",
         },
@@ -99,7 +100,7 @@ function Login() {
             backdropFilter: "blur(2px)",
             border: "1px solid rgba(255, 255, 255, 0.2)",
         },
-        heading: { fontSize: "2rem", fontWeight: "700", color: isDarkMode ? "#d0d0d0" : "#000000ff", marginBottom: "1px" },
+        heading: { fontSize: "2rem", fontWeight: "700", color: isDarkMode ? "#d0d0d0" : "#000000ff", marginBottom: "25px" },
         subtitle: { fontSize: "1.1rem", color: isDarkMode ? "#d0d0d0" : "#000000ff", marginBottom: "25px" },
         input: {
             minWidth: "70%",
@@ -111,7 +112,7 @@ function Login() {
             fontSize: "0.95rem",
             color: "white",
             backgroundImage:
-                "linear-gradient(90deg, #25257F, #1B1B37), linear-gradient(45deg, #003CFF, #E3DBE5)",
+                isDarkMode ? "linear-gradient(90deg, #25257F, #1B1B37), linear-gradient(45deg, #003CFF, #E3DBE5)" : "linear-gradient(90deg, #DDE3FF, #F5F7FF), linear-gradient(45deg, #6A9CFF, #F5F3FA)",
             backgroundOrigin: "border-box",
             backgroundClip: "padding-box, border-box",
         },
@@ -120,7 +121,7 @@ function Login() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            fontSize: "1.2rem",
+            color: isDarkMode ? "#cfcfcf" : "#000000",
             margin: "0 auto 20px",
         },
         signupBtn: {
@@ -129,7 +130,7 @@ function Login() {
             borderRadius: "55px",
             border: "2.5px solid transparent",
             backgroundImage:
-                "linear-gradient(90deg, #7FE7FF, #37376F), linear-gradient(92deg, #D9B8DF, #5E15D4)",
+                isDarkMode ? "linear-gradient(90deg, #7FE7FF, #37376F), linear-gradient(92deg, #D9B8DF, #5E15D4)" : "linear-gradient(90deg, #aff2feff, #A3A3FF), linear-gradient(92deg, #e9b2efff, #a979fbff)",
             color: "white",
             fontWeight: "bold",
             cursor: "pointer",
@@ -140,7 +141,7 @@ function Login() {
         },
         googleBtn: {
             marginTop: "15px",
-            color: "#fff",
+            color: isDarkMode ? "#fff" : "#000",
             borderRadius: "25px",
             display: "flex",
             alignItems: "center",
@@ -176,7 +177,7 @@ function Login() {
             {/* Login Box */}
             <div style={styles.box}>
                 <h1 style={styles.heading}>DEX</h1>
-                <p style={styles.subtitle}>Secure Access</p>
+                {/* <p style={styles.subtitle}>Secure Access</p> */}
 
                 <form onSubmit={handleSubmit}>
                     <input
@@ -202,7 +203,7 @@ function Login() {
                                 id="flexSwitchCheckDefault"
                             />
                             <label
-                                className="form-check-label ms-2"
+                                className="form-check-label"
                                 htmlFor="flexSwitchCheckDefault"
                             >
                                 Remember me
