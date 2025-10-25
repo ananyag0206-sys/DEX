@@ -1,9 +1,16 @@
 // SideBar.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import bkg from "./bkg.jpg";   // Dark mode background
+import bkg2 from "./bkg2.png"; // Light mode background
+import { ThemeContext } from "./ThemeContext";
 
-export default function SideBar() {
+export default function SideBar({ children }) {
+    const { isDarkMode, toggleTheme } = useContext(ThemeContext); // get theme from context
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    const navigate = useNavigate();
+    const handleNavigate = (path) => navigate(path);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -11,26 +18,56 @@ export default function SideBar() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const navigate = useNavigate();
-    const handleNavigate = (path) => navigate(path);
-
+    // ---------- Styles ----------
     const styles = {
+        container: {
+            minHeight: "100vh",
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundImage: `url(${isDarkMode ? bkg : bkg2})`, // dynamic background
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            fontFamily: "Inter, sans-serif",
+            color: isDarkMode ? "#fff" : "#000",
+            padding: isMobile ? "10px 0" : "0px",
+            transition: "all 0.3s ease",
+        },
+        mainWrapper: {
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            width: "95%",
+            height: isMobile ? "auto" : "95vh",
+            borderRadius: "16px",
+            border: `2px solid ${isDarkMode ? "#fff" : "#000"}`,
+            overflow: "hidden",
+            background: isDarkMode ? "rgba(30,30,30,0.3)" : "rgba(255,255,255,0.3)",
+            padding: "0px",
+            color: isDarkMode ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)",
+            boxShadow: isDarkMode ? "0 12px 30px rgba(0,0,0,0.2)" : "0 12px 30px rgba(0,0,0,0.2)",
+            transition: "all 0.3s ease",
+        },
         sidebar: {
             width: isMobile ? "100%" : "240px",
-            backgroundImage: "linear-gradient(400deg, #0D1630 40%, #394F98 100%)",
+            background: isDarkMode
+                ? "linear-gradient(400deg, #0D1630 40%, #394F98 100%)"
+                : "linear-gradient(400deg, #E0E0E0 40%, #B0C4DE 100%)",
             display: "flex",
             flexDirection: "column",
             padding: isMobile ? "12px" : "24px",
             boxSizing: "border-box",
             borderRadius: isMobile ? "16px 16px 0 0" : "16px 0 0 16px",
             flexShrink: 0,
+            transition: "all 0.3s ease",
+            color: isDarkMode ? "#fff" : "#000",
         },
         logo: {
             fontSize: isMobile ? "24px" : "28px",
             fontWeight: "bold",
             textAlign: "center",
             marginBottom: "12px",
-            color: "#fff",
+            color: isDarkMode ? "#fff" : "#000",
         },
         sidebarSearchContainer: { marginBottom: "12px" },
         sidebarSearchInput: {
@@ -39,9 +76,10 @@ export default function SideBar() {
             borderRadius: "8px",
             border: "none",
             outline: "none",
-            background: "#191C28",
-            color: "#fff",
+            background: isDarkMode ? "#191C28" : "#F0F0F0",
+            color: isDarkMode ? "#fff" : "#000",
             fontSize: isMobile ? "12px" : "13px",
+            transition: "all 0.3s ease",
         },
         navList: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" },
         navButton: {
@@ -50,59 +88,82 @@ export default function SideBar() {
             gap: "10px",
             background: "transparent",
             border: "none",
-            color: "#b5c4df",
+            color: isDarkMode ? "#b5c4df" : "#333",
             fontSize: isMobile ? "13px" : "14px",
             padding: "10px 12px",
             borderRadius: "8px",
             cursor: "pointer",
             textAlign: "left",
-            transition: "background 0.2s",
+            transition: "all 0.3s ease",
         },
         sidebarFooter: { marginTop: "auto", fontSize: isMobile ? "11px" : "12px" },
         darkModeContainer: { display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" },
+        contentArea: {
+            flex: 1,
+            padding: isMobile ? "10px" : "16px",
+            overflowY: "auto",
+            background: isDarkMode ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.3)",
+            borderRadius: "0 16px 16px 0",
+            transition: "all 0.3s ease",
+        },
     };
 
     return (
-        <aside style={styles.sidebar}>
-            <div style={styles.logo}>DEX</div>
-            <div style={styles.sidebarSearchContainer}>
-                <input placeholder="Search..." style={styles.sidebarSearchInput} />
-            </div>
-            <nav>
-                <ul style={styles.navList}>
-                    <li>
-                        <button onClick={() => handleNavigate("/connecteddatabase")} style={styles.navButton}>
-                            Home
-                        </button>
-                    </li>
-                    <li>
-                        <button onClick={() => handleNavigate("/databases")} style={styles.navButton}>
-                            Databases
-                        </button>
-                    </li>
-                    <li>
-                        <button onClick={() => handleNavigate("/queries")} style={styles.navButton}>
-                            Queries
-                        </button>
-                    </li>
-                    <li>
-                        <button onClick={() => handleNavigate("/AIinsights")} style={styles.navButton}>
-                            AI Insights
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-            <div style={styles.sidebarFooter}>
-                <div>Welcome, Ananya</div>
-                <div style={styles.darkModeContainer}>
-                    <div className="form-check form-switch">
-                        <input className="form-check-input" type="checkbox" role="switch" id="switchCheckDefault" />
-                        <label className="form-check-label" htmlFor="switchCheckDefault">
-                            Dark / Light Mode
-                        </label>
+        <div style={styles.container}>
+            <div style={styles.mainWrapper}>
+                {/* Sidebar */}
+                <aside style={styles.sidebar}>
+                    <div style={styles.logo}>DEX</div>
+                    <div style={styles.sidebarSearchContainer}>
+                        <input placeholder="Search..." style={styles.sidebarSearchInput} />
                     </div>
-                </div>
+                    <nav>
+                        <ul style={styles.navList}>
+                            <li>
+                                <button onClick={() => handleNavigate("/connecteddatabase")} style={styles.navButton}>
+                                    Home
+                                </button>
+                            </li>
+                            <li>
+                                <button onClick={() => handleNavigate("/databases")} style={styles.navButton}>
+                                    Databases
+                                </button>
+                            </li>
+                            <li>
+                                <button onClick={() => handleNavigate("/queries")} style={styles.navButton}>
+                                    Queries
+                                </button>
+                            </li>
+                            <li>
+                                <button onClick={() => handleNavigate("/AIinsights")} style={styles.navButton}>
+                                    AI Insights
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div style={styles.sidebarFooter}>
+                        <div>Welcome, Ananya</div>
+                        <div style={styles.darkModeContainer}>
+                            <div className="form-check form-switch">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    id="switchCheckDefault"
+                                    checked={!isDarkMode} // checked if light mode
+                                    onChange={toggleTheme}
+                                />
+                                <label className="form-check-label" htmlFor="switchCheckDefault">
+                                    Dark / Light Mode
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Content */}
+                <div style={styles.contentArea}>{children}</div>
             </div>
-        </aside>
+        </div>
     );
 }

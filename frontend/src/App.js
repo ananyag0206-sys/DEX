@@ -8,27 +8,24 @@ import AI from "./components/AI";
 import Chat from "./components/Chat";
 import AccountSettings from './components/AccountSettings';
 import SideBar from "./components/SideBar";
+import { ThemeProvider } from "./components/ThemeContext"; // added
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
-        <Route path="/" element={<Login />} />
-        <Route path="/connecteddatabase" element={<ConnectedDatabase />} />
-        <Route path="/AIinsights" element={<AI />} />
-        <Route path="/NewChat" element={<Chat />} />
-        <Route path="/AccountSettings" element={<AccountSettings />} />
-        <Route path="/sidebar" element={<SideBar />} />
-
-      </Routes>
-    </Router>
+    <ThemeProvider> {/* Wrap entire app in ThemeProvider for shared dark/light mode */}
+      <Router>
+        <Routes>
+          {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+          <Route path="/" element={<Login />} />
+          <Route path="/connecteddatabase" element={<ConnectedDatabase />} />
+          <Route path="/AIinsights" element={<AI />} />
+          <Route path="/NewChat" element={<Chat />} />
+          <Route path="/AccountSettings" element={<AccountSettings />} />
+          <Route path="/sidebar" element={<SideBar />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
 export default App;
-
-
-
-
-

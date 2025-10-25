@@ -1,21 +1,20 @@
 import { CircleUserRound, Cog, SunMoon } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import bkg from "./bkg.jpg";
+import bkg2 from "./bkg2.png"; // Light theme background
 
 function Login() {
     const navigate = useNavigate();
+    const [isDarkMode, setIsDarkMode] = useState(true); // Dark mode by default
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
         const username = e.target.username.value;
         const password = e.target.password.value;
 
-        // Simple login check — you can replace with backend logic later
         if (username === "admin" && password === "1234") {
-            // alert("Login Successful!");
-            navigate("/connecteddatabase"); // ✅ Redirects to Dashboard
+            navigate("/connecteddatabase");
         } else {
             alert("Invalid Username/Password");
         }
@@ -29,11 +28,15 @@ function Login() {
         alert("Forgot Password Clicked!");
     };
 
+    const toggleTheme = () => {
+        setIsDarkMode(!isDarkMode);
+    };
+
     const styles = {
         container: {
             minHeight: "100vh",
             minWidth: "100vw",
-            backgroundImage: `url(${bkg})`,
+            backgroundImage: `url(${isDarkMode ? bkg : bkg2})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundAttachment: "fixed",
@@ -44,12 +47,9 @@ function Login() {
             fontFamily: "Poppins, sans-serif",
             color: "white",
             gap: "20px",
+            transition: "background 0.5s ease",
         },
-        iconGroup: {
-            display: "flex",
-            alignItems: "center",
-            gap: "30px",
-        },
+        iconGroup: { display: "flex", alignItems: "center", gap: "30px" },
         circleIcon: {
             minWidth: "2vw",
             minHeight: "4vh",
@@ -60,10 +60,7 @@ function Login() {
             alignItems: "center",
             cursor: "pointer",
         },
-        navbtn: {
-            background: "none",
-            border: "none",
-        },
+        navbtn: { background: "none", border: "none", cursor: "pointer" },
         boxx: {
             display: "flex",
             alignItems: "center",
@@ -98,21 +95,12 @@ function Login() {
             minWidth: "50vw",
             minHeight: "30vh",
             textAlign: "center",
-            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.3)", // a bit deeper shadow for contrast
-            backdropFilter: "blur(2px)",  // stronger blur for better glass feel
-            // WebkitBackdropFilter: "blur(10px)", // for Safari compatibility
-            border: "1px solid rgba(255, 255, 255, 0.2)", // subtle border for depth
+            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(2px)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
         },
-        heading: {
-            fontSize: "2rem",
-            fontWeight: "700",
-            marginBottom: "1px",
-        },
-        subtitle: {
-            fontSize: "1.1rem",
-            color: "#d0d0d0",
-            marginBottom: "25px",
-        },
+        heading: { fontSize: "2rem", fontWeight: "700", color: isDarkMode ? "#d0d0d0" : "#000000ff", marginBottom: "1px" },
+        subtitle: { fontSize: "1.1rem", color: isDarkMode ? "#d0d0d0" : "#000000ff", marginBottom: "25px" },
         input: {
             minWidth: "70%",
             padding: "12px 15px",
@@ -134,10 +122,6 @@ function Login() {
             alignItems: "center",
             fontSize: "1.2rem",
             margin: "0 auto 20px",
-        },
-        link: {
-            color: "#cfcfcf",
-            textDecoration: "none",
         },
         signupBtn: {
             minWidth: "30%",
@@ -182,7 +166,9 @@ function Login() {
                         <button style={styles.navbtn}><CircleUserRound /></button>
                     </div>
                     <div style={styles.circleIcon}>
-                        <button style={styles.navbtn}><SunMoon size={28} strokeWidth={1.75} /></button>
+                        <button style={styles.navbtn} onClick={toggleTheme}>
+                            <SunMoon size={28} strokeWidth={1.75} />
+                        </button>
                     </div>
                 </div>
             </div>
@@ -192,7 +178,6 @@ function Login() {
                 <h1 style={styles.heading}>DEX</h1>
                 <p style={styles.subtitle}>Secure Access</p>
 
-                {/* ✅ Wrapped in a form so handleSubmit works properly */}
                 <form onSubmit={handleSubmit}>
                     <input
                         type="text"
