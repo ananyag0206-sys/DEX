@@ -50,18 +50,27 @@ function Login() {
             gap: "20px",
             transition: "background 0.5s ease",
         },
-        iconGroup: { display: "flex", alignItems: "center", gap: "30px" },
+        iconGroup: {
+            display: "flex", alignItems: "center", gap: "30px",
+            color: isDarkMode ? "#ffffff" : "#000000"
+        },
         circleIcon: {
             minWidth: "2vw",
             minHeight: "4vh",
             borderRadius: "50%",
-            background: "white",
+            background: isDarkMode ? "#ffffff" : "#ffffffff", // 🔥 Black background in light theme
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             cursor: "pointer",
+            transition: "all 0.3s ease",
         },
-        navbtn: { background: "none", border: "none", cursor: "pointer" },
+        navbtn: {
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: isDarkMode ? "#000000" : "#000000ff" // 🔥 White icons in light theme
+        },
         boxx: {
             display: "flex",
             alignItems: "center",
@@ -72,10 +81,10 @@ function Login() {
             borderRadius: "35px",
             border: "2px solid transparent",
             backgroundImage:
-                "linear-gradient(#25257F, #1B1B37), linear-gradient(45deg, #D9B8DF, #5E15D4)",
+                isDarkMode ? "linear-gradient(#25257F, #1B1B37), linear-gradient(45deg, #D9B8DF, #5E15D4)" : "linear-gradient(45deg, #ccd6fcff, #F5F7FF), linear-gradient(45deg, #6A9CFF, #F5F3FA)",
             backgroundOrigin: "border-box",
             backgroundClip: "padding-box, border-box",
-            color: "white",
+            color: isDarkMode ? "#ffffff" : "#000000",
             fontWeight: "bold",
             position: "fixed",
             top: "20px",

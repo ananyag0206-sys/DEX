@@ -52,7 +52,8 @@ export default function SideBar({ children }) {
             width: isMobile ? "100%" : "240px",
             background: isDarkMode
                 ? "linear-gradient(400deg, #0D1630 40%, #394F98 100%)"
-                : "linear-gradient(400deg, #E0E0E0 40%, #B0C4DE 100%)",
+                : "#f2f2f2d1",
+                // : "linear-gradient(400deg, #B0C4DE 10%, #E0E0E0 100%)",
             display: "flex",
             flexDirection: "column",
             padding: isMobile ? "12px" : "24px",
@@ -74,7 +75,7 @@ export default function SideBar({ children }) {
             width: "100%",
             padding: isMobile ? "6px" : "8px",
             borderRadius: "8px",
-            border: "none",
+            border: isDarkMode ? "none" : "1px solid #ccc",
             outline: "none",
             background: isDarkMode ? "#191C28" : "#F0F0F0",
             color: isDarkMode ? "#fff" : "#000",

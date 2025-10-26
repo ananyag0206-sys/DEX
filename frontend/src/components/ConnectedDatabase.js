@@ -194,7 +194,7 @@ export default function ConnectedDatabase() {
             background: isDarkMode ? "rgba(30,30,30,0.3)" : "rgba(255,255,255,0.3)",
         },
         heading: {
-            color: "#48a2ff",
+            color: isDarkMode ? "#0080ffff" : "#0259b1ff",
             fontSize: isMobile ? "18px" : "20px",
             margin: 0,
         },
@@ -245,7 +245,7 @@ export default function ConnectedDatabase() {
                         }}>
                             {filterOptions.map(opt => (
                                 <div key={opt} style={{ padding: "6px 12px", cursor: "pointer", color: isDarkMode ? "#fff" : "#000" }}
-                                     onClick={() => { setSelectedFilter(opt); setFilterOpen(false); }}>{opt}</div>
+                                    onClick={() => { setSelectedFilter(opt); setFilterOpen(false); }}>{opt}</div>
                             ))}
                         </div>}
                     </div>
@@ -277,13 +277,13 @@ export default function ConnectedDatabase() {
                         }}>
                             <h3 style={{ margin: 0, color: "#48a2ff" }}>Add New Database</h3>
                             <input placeholder="Database Name" value={newDBName} onChange={(e) => setNewDBName(e.target.value)}
-                                   style={{
-                                       padding: "8px",
-                                       borderRadius: "8px",
-                                       border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-                                       background: isDarkMode ? "#191C28" : "#f9f9f9",
-                                       color: isDarkMode ? "#fff" : "#000"
-                                   }}
+                                style={{
+                                    padding: "8px",
+                                    borderRadius: "8px",
+                                    border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
+                                    background: isDarkMode ? "#191C28" : "#f9f9f9",
+                                    color: isDarkMode ? "#fff" : "#000"
+                                }}
                             />
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                                 <button style={{
@@ -322,7 +322,7 @@ export default function ConnectedDatabase() {
                     marginBottom: "2px",
                     boxShadow: isDarkMode ? "0 2px 4px rgba(0,0,0,0.2)" : "0 2px 4px rgba(0,0,0,0.1)",
                 }}>
-                    <h4 style={{ margin: "2px 0", fontSize: "12px" }}>Database Monitoring</h4>
+                    <h4 style={{ margin: "2px 0", fontSize: "12px", color: isDarkMode ? "#fff" : "#000" }}>Database Monitoring</h4>
                     <ResponsiveContainer width="100%" height={190}>
                         <LineChart data={monitoringData}>
                             <CartesianGrid stroke={isDarkMode ? "#444" : "#ccc"} strokeDasharray="3 3" />
@@ -357,7 +357,7 @@ export default function ConnectedDatabase() {
 
 
 
-// IF U DONT WANT INITAL SAVED DATA THEN BUT THIS CODE 
+// IF U DONT WANT INITAL SAVED DATA THEN BUT THIS CODE
 // ConnectedDatabase.js
 // import React, { useState, useEffect } from "react";
 // import { Edit, Trash, Plus } from "lucide-react";
