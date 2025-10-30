@@ -8,7 +8,9 @@ import AI from "./components/AI";
 import Chat from "./components/Chat";
 import AccountSettings from './components/AccountSettings';
 import SideBar from "./components/SideBar";
+import Signup from "./components/Signup";
 import { ThemeProvider } from "./components/ThemeContext"; // added
+import QueryEditor from "./components/QueryEditor";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
           <Route path="/NewChat" element={<Chat />} />
           <Route path="/AccountSettings" element={<AccountSettings />} />
           <Route path="/sidebar" element={<SideBar />} />
+          <Route path="/signup" element={<Signup />} /> 
+          <Route path="/queryeditor" element={<QueryEditor />} />
         </Routes>
       </Router>
     </ThemeProvider>

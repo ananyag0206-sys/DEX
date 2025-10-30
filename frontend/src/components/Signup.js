@@ -1,6 +1,5 @@
-// Login.js
 import { CircleUserRound, Cog, SunMoon } from "lucide-react";
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import bkg from "./bkg.jpg";
 import bkg2 from "./bkg2.png";
@@ -8,76 +7,99 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { supabase } from "./supabase-client";
 import { ThemeContext } from "./ThemeContext";
 
-export default function Login() {
+export default function Signup() {
     const navigate = useNavigate();
     const { isDarkMode, toggleTheme } = useContext(ThemeContext);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    // ✅ Check session and auto-redirect if logged in
-    useEffect(() => {
-        const checkSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) navigate("/connecteddatabase");
-        };
-        checkSession();
-
-        const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session) navigate("/connecteddatabase");
-        });
-
-        return () => subscription.subscription.unsubscribe();
-    }, [navigate]);
-
-    // Email/Password login
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setError("");
 
-        const email = e.target.username.value;
+        const username = e.target.username.value.trim();
+        const email = e.target.email.value.trim();
         const password = e.target.password.value;
+        const confirmPassword = e.target.confirmPassword.value;
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        // ✅ Validation
+        if (!username || !email || !password || !confirmPassword) {
+            setError("Please fill in all fields.");
+            setLoading(false);
+            return;
+        }
 
-        if (error) alert(error.message);
-        else navigate("/connecteddatabase");
+        if (password !== confirmPassword) {
+            setError("Passwords do not match!");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // ✅ Check if username already exists
+            const { data: existingUser, error: usernameCheckError } = await supabase
+                .from("Users")
+                .select("username")
+                .eq("username", username)
+                .maybeSingle();
+
+            if (usernameCheckError) {
+                console.error("Error checking username:", usernameCheckError);
+                throw usernameCheckError;
+            }
+
+            if (existingUser) {
+                setError("Username already taken. Please choose another one.");
+                setLoading(false);
+                return;
+            }
+
+            // ✅ Create Supabase Auth user
+            const { data, error: signUpError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { username },
+                    emailRedirectTo: window.location.origin,
+                },
+            });
+
+            if (signUpError) {
+                console.error("Signup error:", signUpError.message);
+                setError(signUpError.message);
+                setLoading(false);
+                return;
+            }
+
+            // ✅ Insert into Users table
+            if (data?.user) {
+                const { error: insertError } = await supabase.from("Users").insert([
+                    {
+                        user_id: data.user.id,
+                        username,
+                        email,
+                        name: username || null, // ✅ prevent null violation
+                    },
+                ]);
+
+                if (insertError) {
+                    console.error("Insert error:", insertError.message);
+                    setError("Signup successful, but failed to save user info.");
+                } else {
+                    alert("Signup successful! Check your email for verification before logging in.");
+                    navigate("/");
+                }
+            }
+        } catch (err) {
+            console.error("Unexpected error:", err);
+            setError("Something went wrong. Please try again.");
+        }
 
         setLoading(false);
     };
 
-    // Google login
-    const handleGoogleLogin = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: { redirectTo: "http://localhost:3000/" },
-        });
-        if (error) alert(error.message);
-    };
-
-    // GitHub login
-    const handleGitHubLogin = async () => {
-        alert("Its comming soon");
-        // const { error } = await supabase.auth.signInWithOAuth({
-        //     ,
-        // provider: "github",
-        // options: { redirectTo: "http://localhost:3000/" },
-        // });
-        // if (error) alert(error.message);
-    };
-
-    // Forgot password
-    // const handleForgotPassword = async () => {
-    //     const email = prompt("Enter your email to reset password:");
-    //     if (!email) return;
-
-    //     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    //         redirectTo: window.location.origin + "/",
-    //     });
-
-    //     if (error) alert(error.message);
-    //     else alert("Password reset email sent!");
-    // };
-
-    // Styles
+    // 🎨 Styles
     const styles = {
         container: {
             minHeight: "100vh",
@@ -99,14 +121,20 @@ export default function Login() {
             background: "rgba(255, 255, 255, 0.05)",
             borderRadius: "35px",
             padding: "40px",
-            minWidth: "50vw",
+            width: "55%",
+            minWidth: "40vw",
             minHeight: "30vh",
             textAlign: "center",
             boxShadow: "0 4px 30px rgba(0, 0, 0, 0.3)",
             backdropFilter: "blur(2px)",
             border: "1px solid rgba(255, 255, 255, 0.2)",
         },
-        heading: { fontSize: "2rem", fontWeight: "700", color: isDarkMode ? "#d0d0d0" : "#000", marginBottom: "25px" },
+        heading: {
+            fontSize: "2rem",
+            fontWeight: "700",
+            color: isDarkMode ? "#d0d0d0" : "#000",
+            marginBottom: "25px",
+        },
         input: {
             minWidth: "70%",
             padding: "12px 15px",
@@ -122,7 +150,14 @@ export default function Login() {
             backgroundOrigin: "border-box",
             backgroundClip: "padding-box, border-box",
         },
-        options: { width: "70%", display: "flex", justifyContent: "space-between", alignItems: "center", color: isDarkMode ? "#cfcfcf" : "#000", margin: "0 auto 20px" },
+        options: {
+            width: "70%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            color: isDarkMode ? "#cfcfcf" : "#000",
+            margin: "0 auto 20px",
+        },
         signupBtn: {
             minWidth: "30%",
             padding: "10px",
@@ -137,22 +172,7 @@ export default function Login() {
             transition: "0.3s",
             backgroundOrigin: "border-box",
             backgroundClip: "padding-box, border-box",
-            position: "relative",
         },
-        oauthBtn: {
-            marginTop: "15px",
-            color: isDarkMode ? "#fff" : "#000",
-            borderRadius: "25px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "10px",
-            gap: "10px",
-            cursor: "pointer",
-            fontWeight: "500",
-            transition: "0.3s",
-        },
-        googleIcon: { width: "20px" },
         boxx: {
             display: "flex",
             alignItems: "center",
@@ -173,12 +193,12 @@ export default function Login() {
             top: "20px",
             right: "20px",
         },
-        navbtn: { background: "none", border: "none", cursor: "pointer", color: isDarkMode ? "#000" : "#000" },
+        navbtn: { background: "none", border: "none", cursor: "pointer", color: "#000" },
         circleIcon: {
             minWidth: "2vw",
             minHeight: "4vh",
             borderRadius: "50%",
-            background: isDarkMode ? "#ffffff" : "#ffffffff",
+            background: "#fff",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -186,6 +206,7 @@ export default function Login() {
             transition: "all 0.3s ease",
         },
         iconGroup: { display: "flex", alignItems: "center", gap: "30px", color: isDarkMode ? "#fff" : "#000" },
+        errorText: { color: "#ff6b6b", marginBottom: "10px", fontWeight: "500" },
     };
 
     return (
@@ -194,52 +215,33 @@ export default function Login() {
             <div style={styles.boxx}>
                 <div style={styles.iconGroup}>
                     <div style={styles.circleIcon}><button style={styles.navbtn}><Cog /></button></div>
-                    {/* Redirect to Signup page when clicked */}
-                    <div style={styles.circleIcon}><button style={styles.navbtn} onClick={() => navigate("/signup")}><CircleUserRound /></button></div>
+                    <div style={styles.circleIcon}><button style={styles.navbtn} onClick={() => navigate("/")}><CircleUserRound /></button></div>
                     <div style={styles.circleIcon}><button style={styles.navbtn} onClick={toggleTheme}><SunMoon size={28} strokeWidth={1.75} /></button></div>
                 </div>
             </div>
 
-            {/* Login Box */}
+            {/* Signup Box */}
             <div style={styles.box}>
                 <h1 style={styles.heading}>DEX</h1>
+                {error && <p style={styles.errorText}>{error}</p>}
+
                 <form onSubmit={handleSubmit}>
-                    <input type="email" name="username" placeholder="Email" style={styles.input} required />
+                    <input type="text" name="username" placeholder="Username" style={styles.input} required />
+                    <input type="email" name="email" placeholder="Email" style={styles.input} required />
                     <input type="password" name="password" placeholder="Password" style={styles.input} required />
+                    <input type="password" name="confirmPassword" placeholder="Confirm Password" style={styles.input} required />
 
                     <div style={styles.options}>
                         <div className="form-check form-switch">
                             <input className="form-check-input" type="checkbox" id="flexSwitchCheckDefault" />
                             <label className="form-check-label" htmlFor="flexSwitchCheckDefault">Remember me</label>
                         </div>
-                        {/* <button type="button" onClick={handleForgotPassword} style={{ background: "none", border: "none", color: isDarkMode ? "#cfcfcf" : "#000", cursor: "pointer" }}>Forgot Password?</button> */}
                     </div>
 
-                    <button type="submit" style={styles.signupBtn}>{loading ? "Loading..." : "LOGIN"}</button>
-                    {/* OR separator */}
-                    <div
-                        style={{
-                            margin: "20px 0",
-                            color: isDarkMode ? "#cfcfcf" : "#000",
-                            fontWeight: "600",
-                            fontSize: "1rem",
-                            textAlign: "center",
-                        }}
-                    >
-                        — OR —
-                    </div>
+                    <button type="submit" style={styles.signupBtn}>
+                        {loading ? "Loading..." : "Sign Up"}
+                    </button>
                 </form>
-
-                {/* OAuth Buttons */}
-                <div style={styles.oauthBtn} onClick={handleGoogleLogin}>
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={styles.googleIcon} />
-                    <span>Continue with Google</span>
-                </div>
-
-                <div style={{ ...styles.oauthBtn, marginTop: "10px", background: "none", color: "#fff" }} onClick={handleGitHubLogin}>
-                    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" style={{ ...styles.googleIcon, filter: "invert(1)" }} />
-                    <span>Continue with GitHub</span>
-                </div>
             </div>
         </div>
     );
