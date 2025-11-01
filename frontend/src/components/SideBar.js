@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import bkg from "./bkg.jpg";   // Dark mode background
 import bkg2 from "./bkg2.png"; // Light mode background
 import { ThemeContext } from "./ThemeContext";
+import { supabase } from "./supabase-client"; // ✅ Import Supabase
 
 export default function SideBar({ children }) {
     const { isDarkMode, toggleTheme } = useContext(ThemeContext); // get theme from context
@@ -26,7 +27,7 @@ export default function SideBar({ children }) {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            backgroundImage: `url(${isDarkMode ? bkg : bkg2})`, // dynamic background
+            backgroundImage: `url(${isDarkMode ? bkg : bkg2})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             fontFamily: "Inter, sans-serif",
@@ -53,7 +54,6 @@ export default function SideBar({ children }) {
             background: isDarkMode
                 ? "linear-gradient(400deg, #0D1630 40%, #394F98 100%)"
                 : "#f2f2f2d1",
-                // : "linear-gradient(400deg, #B0C4DE 10%, #E0E0E0 100%)",
             display: "flex",
             flexDirection: "column",
             padding: isMobile ? "12px" : "24px",
@@ -116,8 +116,10 @@ export default function SideBar({ children }) {
                 <aside style={styles.sidebar}>
                     <div style={styles.logo}>DEX</div>
                     <div style={styles.sidebarSearchContainer}>
-                        <input placeholder="Search..." style={styles.sidebarSearchInput} />
+                        {/* <input placeholder="Search..." style={styles.sidebarSearchInput} /> */}
                     </div>
+
+                    {/* Navigation Links */}
                     <nav>
                         <ul style={styles.navList}>
                             <li>
@@ -131,7 +133,7 @@ export default function SideBar({ children }) {
                                 </button>
                             </li>
                             <li>
-                                <button onClick={() => handleNavigate("/queries")} style={styles.navButton}>
+                                <button onClick={() => handleNavigate("/queryeditor")} style={styles.navButton}>
                                     Queries
                                 </button>
                             </li>
@@ -142,6 +144,8 @@ export default function SideBar({ children }) {
                             </li>
                         </ul>
                     </nav>
+
+                    {/* Footer with Dark Mode and Sign Out */}
                     <div style={styles.sidebarFooter}>
                         <div>Welcome, Ananya</div>
                         <div style={styles.darkModeContainer}>
@@ -151,7 +155,7 @@ export default function SideBar({ children }) {
                                     type="checkbox"
                                     role="switch"
                                     id="switchCheckDefault"
-                                    checked={!isDarkMode} // checked if light mode
+                                    checked={!isDarkMode}
                                     onChange={toggleTheme}
                                 />
                                 <label className="form-check-label" htmlFor="switchCheckDefault">
@@ -159,6 +163,18 @@ export default function SideBar({ children }) {
                                 </label>
                             </div>
                         </div>
+
+                        {/* Sign Out Button */}
+                        <button
+                            onClick={async () => {
+                                const { error } = await supabase.auth.signOut();
+                                if (error) alert(error.message);
+                                else navigate("/");
+                            }}
+                            style={{ ...styles.navButton, marginTop: "10px", color: "#ff4d4f", fontWeight: "bold" }}
+                        >
+                            Sign Out
+                        </button>
                     </div>
                 </aside>
 

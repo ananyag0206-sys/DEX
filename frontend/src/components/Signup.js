@@ -85,10 +85,8 @@ export default function Signup() {
 
                 if (insertError) {
                     console.error("Insert error:", insertError.message);
-                    setError("Signup successful, but failed to save user info.");
-                } else {
-                    alert("Signup successful! Check your email for verification before logging in.");
-                    navigate("/");
+                    setError("Signup successful, but failed to save user info.");                } else {
+                    alert("Signup successful! Check your email for verification before logging in.");                    navigate("/");
                 }
             }
         } catch (err) {
@@ -98,6 +96,7 @@ export default function Signup() {
 
         setLoading(false);
     };
+
 
     // 🎨 Styles
     const styles = {
@@ -231,12 +230,12 @@ export default function Signup() {
                     <input type="password" name="password" placeholder="Password" style={styles.input} required />
                     <input type="password" name="confirmPassword" placeholder="Confirm Password" style={styles.input} required />
 
-                    <div style={styles.options}>
+                    {/* <div style={styles.options}>
                         <div className="form-check form-switch">
                             <input className="form-check-input" type="checkbox" id="flexSwitchCheckDefault" />
                             <label className="form-check-label" htmlFor="flexSwitchCheckDefault">Remember me</label>
                         </div>
-                    </div>
+                    </div> */}
 
                     <button type="submit" style={styles.signupBtn}>
                         {loading ? "Loading..." : "Sign Up"}
