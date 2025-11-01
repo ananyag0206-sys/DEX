@@ -85,8 +85,9 @@ export default function Signup() {
 
                 if (insertError) {
                     console.error("Insert error:", insertError.message);
-                    setError("Signup successful, but failed to save user info.");                } else {
-                    alert("Signup successful! Check your email for verification before logging in.");                    navigate("/");
+                    setError("Signup successful, but failed to save user info.");
+                } else {
+                    alert("Signup successful! Check your email for verification before logging in."); navigate("/");
                 }
             }
         } catch (err) {

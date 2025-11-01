@@ -16,10 +16,30 @@ import { ThemeContext } from "./ThemeContext";
 
 // ---------- Initial Data ----------
 const initialDatabases = [
-    { name: "Project_Alpha", status1: "Connected", status2: "Connected", lastUpdate: "5 sec ago" },
-    { name: "Posttgfcs_BL", status1: "Connected", status2: "Disconnected", lastUpdate: "" },
-    { name: "Analytics_DB", status1: "Connected", status2: "Connected", lastUpdate: "" },
-    { name: "Enterpriss_DB", status1: "Disconnected", status2: "Disconnected", lastUpdate: "21 Days ago" },
+    {
+        name: "Project_Alpha",
+        status1: "Connected",
+        status2: "Connected",
+        lastUpdate: "5 sec ago"
+    },
+    {
+        name: "Posttgfcs_BL",
+        status1: "Connected",
+        status2: "Disconnected",
+        lastUpdate: ""
+    },
+    {
+        name: "Analytics_DB",
+        status1: "Connected",
+        status2: "Connected",
+        lastUpdate: ""
+    },
+    {
+        name: "Enterpriss_DB",
+        status1: "Disconnected",
+        status2: "Disconnected",
+        lastUpdate: "21 Days ago"
+    },
 ];
 
 const monitoringData = [
