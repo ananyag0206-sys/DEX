@@ -1,5 +1,4 @@
-// Login.js
-import { CircleUserRound, Cog, SunMoon } from "lucide-react";
+import { CircleUserRound, SunMoon, MailCheck } from "lucide-react";
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import bkg from "./bkg.jpg";
@@ -14,6 +13,9 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [rememberMe, setRememberMe] = useState(true);
+    const [showReset, setShowReset] = useState(false);
+    const [resetEmail, setResetEmail] = useState("");
+    const [resetStatus, setResetStatus] = useState("");
 
     // ✅ Auto redirect if already logged in
     useEffect(() => {
@@ -36,7 +38,7 @@ export default function Login() {
         return () => subscription.subscription.unsubscribe();
     }, [navigate]);
 
-    // ✅ Handle login by email or username
+    // ✅ Handle login
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -54,7 +56,6 @@ export default function Login() {
         let email = input;
 
         try {
-            // If user entered a username instead of an email, fetch email from Users table
             if (!input.includes("@")) {
                 const { data: user, error: fetchError } = await supabase
                     .from("Users")
@@ -67,11 +68,9 @@ export default function Login() {
                     setLoading(false);
                     return;
                 }
-
                 email = user.email;
             }
 
-            // Sign in user with Supabase Auth
             const { data, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -89,7 +88,6 @@ export default function Login() {
                 return;
             }
 
-            // ✅ Manage session storage
             if (rememberMe) {
                 localStorage.setItem("supabase_session", JSON.stringify(data.session));
             } else {
@@ -105,7 +103,32 @@ export default function Login() {
         setLoading(false);
     };
 
-    // ✅ Google OAuth
+    // ✅ Forgot Password (send reset link)
+    const handlePasswordReset = async (e) => {
+        e.preventDefault();
+        setError("");
+        setResetStatus("");
+
+        if (!resetEmail) {
+            setError("Please enter your registered email.");
+            return;
+        }
+
+        const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+            redirectTo: `${window.location.origin}/account-reset`,
+        });
+
+        if (error) {
+            setError(error.message);
+        } else {
+            setResetStatus("✅ Password reset email sent! Check your inbox.");
+            setShowReset(false);
+            setResetEmail("");
+            setTimeout(() => setResetStatus(""), 4000);
+        }
+    };
+
+    // ✅ OAuth
     const handleGoogleLogin = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: "google",
@@ -114,7 +137,6 @@ export default function Login() {
         if (error) setError(error.message);
     };
 
-    // ✅ GitHub OAuth
     const handleGitHubLogin = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: "github",
@@ -196,163 +218,160 @@ export default function Login() {
             backgroundOrigin: "border-box",
             backgroundClip: "padding-box, border-box",
         },
-        oauthBtn: {
-            color: isDarkMode ? "#fff" : "#000",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "9px",
-            gap: "9px",
+        link: {
+            color: "#7FE7FF",
             cursor: "pointer",
+            padding: "5px",
+            textDecoration: "underline",
+            marginLeft: "5px",
+        },
+        successText: {
+            color: "#00e676",
+            marginBottom: "10px",
             fontWeight: "500",
-            transition: "0.3s",
-        },
-        googleIcon: { width: "20px" },
-        boxx: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "10px",
-            padding: "10px 20px",
-            minWidth: "10vw",
-            borderRadius: "35px",
-            border: "2px solid transparent",
-            backgroundImage: isDarkMode
-                ? "linear-gradient(#25257F, #1B1B37), linear-gradient(45deg, #D9B8DF, #5E15D4)"
-                : "linear-gradient(45deg, #ccd6fcff, #F5F7FF), linear-gradient(45deg, #6A9CFF, #F5F3FA)",
-            backgroundOrigin: "border-box",
-            backgroundClip: "padding-box, border-box",
-            color: isDarkMode ? "#fff" : "#000",
-            fontWeight: "bold",
-            position: "fixed",
-            top: "20px",
-            right: "20px",
-        },
-        navbtn: {
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: isDarkMode ? "#000" : "#000",
-        },
-        circleIcon: {
-            minWidth: "2vw",
-            minHeight: "4vh",
-            borderRadius: "50%",
-            background: isDarkMode ? "#ffffff" : "#ffffffff",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-        },
-        iconGroup: {
-            display: "flex",
-            alignItems: "center",
-            gap: "30px",
-            color: isDarkMode ? "#fff" : "#000",
         },
         errorText: {
             color: "#ff6b6b",
             marginBottom: "10px",
             fontWeight: "500",
         },
+        oauthBtn: {
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "10px",
+            marginTop: "15px",
+            cursor: "pointer",
+            fontWeight: "600",
+            color: isDarkMode ? "#fff" : "#000",
+        },
     };
 
     return (
         <div style={styles.container}>
-            {/* Top bar */}
-            <div style={styles.boxx}>
-                <div style={styles.iconGroup}>
-                    <div style={styles.circleIcon}>
-                        <button style={styles.navbtn}><Cog /></button>
-                    </div>
-                    <div style={styles.circleIcon}>
-                        <button style={styles.navbtn} onClick={() => navigate("/signup")}>
-                            <CircleUserRound />
-                        </button>
-                    </div>
-                    <div style={styles.circleIcon}>
-                        <button style={styles.navbtn} onClick={toggleTheme}>
-                            <SunMoon size={28} strokeWidth={1.75} />
-                        </button>
-                    </div>
+            {/* Top Bar */}
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    position: "fixed",
+                    top: "20px",
+                    right: "20px",
+                    gap: "20px",
+                }}
+            >
+                <div style={{ cursor: "pointer" }} onClick={() => navigate("/signup")}>
+                    <CircleUserRound />
+                </div>
+                <div style={{ cursor: "pointer" }} onClick={toggleTheme}>
+                    <SunMoon size={28} strokeWidth={1.75} />
                 </div>
             </div>
 
-            {/* Login Box */}
             <div style={styles.box}>
                 <h1 style={styles.heading}>DEX</h1>
                 {error && <p style={styles.errorText}>{error}</p>}
+                {resetStatus && <p style={styles.successText}>{resetStatus}</p>}
 
-                <form onSubmit={handleSubmit}>
-                    <input
-                        type="text"
-                        name="username"
-                        placeholder="Email or Username"
-                        style={styles.input}
-                        required
-                    />
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="Password"
-                        style={styles.input}
-                        required
-                    />
+                {/* Main Login Form */}
+                {!showReset ? (
+                    <form onSubmit={handleSubmit}>
+                        <input
+                            type="text"
+                            name="username"
+                            placeholder="Email or Username"
+                            style={styles.input}
+                            required
+                        />
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Password"
+                            style={styles.input}
+                            required
+                        />
 
-                    <div style={styles.options}>
-                        <div className="form-check form-switch">
-                            <input
-                                className="form-check-input"
-                                type="checkbox"
-                                id="flexSwitchCheckDefault"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                            />
-                            <label
-                                className="form-check-label"
-                                htmlFor="flexSwitchCheckDefault"
-                            >
-                                Remember me
-                            </label>
+                        <div style={styles.options}>
+                            <div className="form-check form-switch">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id="rememberMe"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                />
+                                <label className="form-check-label" htmlFor="rememberMe">
+                                    Remember me
+                                </label>
+                            </div>
+                            <span style={styles.link} onClick={() => setShowReset(true)}>
+                                Forgot password?
+                            </span>
                         </div>
-                    </div>
 
-                    <button type="submit" style={styles.signupBtn}>
-                        {loading ? "Loading..." : "LOGIN"}
-                    </button>
+                        <button type="submit" style={styles.signupBtn}>
+                            {loading ? "Loading..." : "LOGIN"}
+                        </button>
 
-                    <div
-                        style={{
-                            margin: "8px 0",
-                            color: isDarkMode ? "#cfcfcf" : "#000",
-                            fontWeight: "600",
-                            fontSize: "1rem",
-                            textAlign: "center",
-                        }}
-                    >
-                        — OR —
-                    </div>
-                </form>
+                        <div
+                            style={{
+                                margin: "8px 0",
+                                color: isDarkMode ? "#cfcfcf" : "#000",
+                                fontWeight: "600",
+                                fontSize: "1rem",
+                            }}
+                        >
+                            — OR —
+                        </div>
+                    </form>
+                ) : (
+                    /* Forgot Password Form */
+                    <form onSubmit={handlePasswordReset}>
+                        <h3 style={{ marginBottom: "10px", color: isDarkMode ? "#ddd" : "#111" }}>
+                            Reset your password
+                        </h3>
+                        <input
+                            type="email"
+                            placeholder="Enter your registered email"
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
+                            style={styles.input}
+                            required
+                        />
+                        <div>
+                        <button type="submit" style={styles.signupBtn}>
+                            <MailCheck /> Send Reset Link
+                        </button>
+                        </div>
+                        <p style={styles.link} onClick={() => setShowReset(false)}>
+                            ← Back to Login
+                        </p>
+                    </form>
+                )}
 
                 {/* OAuth Buttons */}
-                <div style={styles.oauthBtn} onClick={handleGoogleLogin}>
-                    <img
-                        src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                        alt="Google"
-                        style={styles.googleIcon}
-                    />
-                    <span>Continue with Google</span>
-                </div>
+                {!showReset && (
+                    <>
+                        <div style={styles.oauthBtn} onClick={handleGoogleLogin}>
+                            <img
+                                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                                alt="Google"
+                                style={{ width: "20px" }}
+                            />
+                            <span>Continue with Google</span>
+                        </div>
 
-                <div style={styles.oauthBtn} onClick={handleGitHubLogin}>
-                    <img
-                        src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-                        alt="GitHub"
-                        style={{ ...styles.googleIcon, filter: "invert(1)" }}
-                    />
-                    <span>Continue with GitHub</span>
-                </div>
+                        <div style={styles.oauthBtn} onClick={handleGitHubLogin}>
+                            <img
+                                src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                                alt="GitHub"
+                                style={{ width: "20px", filter: "invert(1)" }}
+                            />
+                            <span>Continue with GitHub</span>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

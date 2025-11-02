@@ -1,769 +1,509 @@
-// ConnectedDatabase.js
 import React, { useState, useEffect, useContext } from "react";
 import { Edit, Trash, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "./SideBar";
 import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    CartesianGrid,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
 import { ThemeContext } from "./ThemeContext";
 
-// ---------- Initial Data ----------
-const initialDatabases = [
-    {
-        name: "Project_Alpha",
-        status1: "Connected",
-        status2: "Connected",
-        lastUpdate: "5 sec ago"
+// ✅ StatusIndicator
+function StatusIndicator({ status }) {
+  return React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      marginRight: "6px",
+      backgroundColor: status === "Connected" ? "#22c55e" : "#ef4444",
     },
-    {
-        name: "Posttgfcs_BL",
-        status1: "Connected",
-        status2: "Disconnected",
-        lastUpdate: ""
-    },
-    {
-        name: "Analytics_DB",
-        status1: "Connected",
-        status2: "Connected",
-        lastUpdate: ""
-    },
-    {
-        name: "Enterpriss_DB",
-        status1: "Disconnected",
-        status2: "Disconnected",
-        lastUpdate: "21 Days ago"
-    },
-];
-
-const monitoringData = [
-    { time: "10:00", response: 45 },
-    { time: "10:05", response: 50 },
-    { time: "10:10", response: 55 },
-    { time: "10:15", response: 52 },
-    { time: "10:20", response: 60 },
-    { time: "10:30", response: 58 },
-];
-
-// ---------- Components ----------
-function StatusIndicator({ status, isDarkMode }) {
-    return <span style={{
-        display: "inline-block",
-        width: "8px",
-        height: "8px",
-        borderRadius: "50%",
-        marginRight: "4px",
-        backgroundColor: status === "Connected" ? "#22c55e" : "#ef4444",
-    }}></span>;
+  });
 }
 
+// ✅ DatabaseCard
 function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete }) {
-    const [isEditing, setIsEditing] = React.useState(false);
-    const [newName, setNewName] = React.useState(db.name);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newName, setNewName] = useState(db.name);
 
-    const cardStyle = {
+  useEffect(() => setNewName(db.name), [db.name]);
+
+  return React.createElement(
+    "div",
+    {
+      style: {
         background: isDarkMode ? "#191C28" : "#f9f9f9",
-        borderRadius: "12px",
-        padding: "8px",
-        marginBottom: "7px",
+        borderRadius: 12,
+        padding: 8,
+        marginBottom: 8,
         display: "flex",
-        border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
         flexDirection: isMobile ? "column" : "row",
         justifyContent: "space-between",
         alignItems: isMobile ? "flex-start" : "center",
-        boxShadow: isDarkMode ? "0 6px 15px rgba(0,0,0,0.3)" : "0 6px 15px rgba(0,0,0,0.1)",
-        cursor: "pointer",
-        fontSize: isMobile ? "12px" : "13px",
-        transition: "transform 0.2s, box-shadow 0.2s",
+        border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
         color: isDarkMode ? "#fff" : "#000",
-    };
-
-    const dbButtonStyle = {
-        background: isDarkMode ? "#374151" : "#e5e7eb",
-        padding: "4px 8px",
-        borderRadius: "6px",
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        border: "none",
-        color: isDarkMode ? "#fff" : "#000",
-        cursor: "pointer",
-        fontSize: "11px",
-        transition: "background 0.2s",
-    };
-
-    const inputStyle = {
-        padding: "6px 8px",
-        borderRadius: "6px",
-        border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-        background: isDarkMode ? "#10131E" : "#fff",
-        color: isDarkMode ? "#fff" : "#000",
-        outline: "none",
-        fontSize: "13px",
-    };
-
-    return (
-        <div
-            style={cardStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0px)")}
-        >
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                {isEditing ? (
-                    <input
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        onBlur={() => { onUpdate(db.name, newName); setIsEditing(false); }}
-                        onKeyDown={(e) => { if (e.key === "Enter") { onUpdate(db.name, newName); setIsEditing(false); } }}
-                        style={inputStyle}
-                        autoFocus
-                    />
-                ) : (
-                    <div style={{ fontWeight: "600", fontSize: isMobile ? "13px" : "14px" }}>{db.name}</div>
-                )}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", fontSize: "11px", alignItems: "center" }}>
-                    {db.lastUpdate && <span style={{ color: "#9ca3af" }}>{db.lastUpdate}</span>}
-                    <span style={{ display: "flex", alignItems: "center" }}>
-                        <StatusIndicator status={db.status1} isDarkMode={isDarkMode} /> {db.status1}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center" }}>
-                        <StatusIndicator status={db.status2} isDarkMode={isDarkMode} /> {db.status2}
-                    </span>
-                </div>
-            </div>
-            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                <button style={dbButtonStyle} onClick={() => setIsEditing(true)}><Edit size={12} /> Edit</button>
-                <button style={dbButtonStyle} onClick={() => onDelete(db.name)}><Trash size={12} /> Delete</button>
-            </div>
-        </div>
-    );
+      },
+    },
+    React.createElement(
+      "div",
+      { style: { display: "flex", flexDirection: "column", gap: 4 } },
+      isEditing
+        ? React.createElement("input", {
+          value: newName,
+          onChange: (e) => setNewName(e.target.value),
+          onBlur: () => {
+            onUpdate(db._id, newName);
+            setIsEditing(false);
+          },
+          onKeyDown: (e) => {
+            if (e.key === "Enter") {
+              onUpdate(db._id, newName);
+              setIsEditing(false);
+            }
+          },
+          autoFocus: true,
+          style: {
+            padding: "6px 8px",
+            borderRadius: 6,
+            border: `1px solid ${isDarkMode ? "#333" : "#ccc"}`,
+            background: isDarkMode ? "#0f1724" : "#fff",
+            color: isDarkMode ? "#fff" : "#000",
+          },
+        })
+        : React.createElement(
+          "div",
+          { style: { fontWeight: 600, fontSize: isMobile ? 13 : 14 } },
+          db.name
+        ),
+      React.createElement(
+        "div",
+        { style: { display: "flex", gap: 8, alignItems: "center", fontSize: 12 } },
+        db.lastUpdate &&
+        React.createElement(
+          "span",
+          { style: { color: "#9ca3af" } },
+          db.lastUpdate
+        ),
+        React.createElement(
+          "span",
+          { style: { display: "flex", alignItems: "center" } },
+          React.createElement(StatusIndicator, { status: db.status1 || "Disconnected" }),
+          db.status1 || "Unknown"
+        ),
+        React.createElement(
+          "span",
+          { style: { display: "flex", alignItems: "center" } },
+          React.createElement(StatusIndicator, { status: db.status2 || "Disconnected" }),
+          db.status2 || "Unknown"
+        )
+      )
+    ),
+    React.createElement(
+      "div",
+      { style: { display: "flex", gap: 8, marginTop: isMobile ? 8 : 0 } },
+      React.createElement(
+        "button",
+        {
+          onClick: () => setIsEditing(true),
+          style: {
+            background: isDarkMode ? "#374151" : "#e5e7eb",
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "none",
+            cursor: "pointer",
+            color: isDarkMode ? "#fff" : "#000",
+            display: "flex",
+            gap: 6,
+            alignItems: "center",
+          },
+        },
+        React.createElement(Edit, { size: 14 }),
+        " Edit"
+      ),
+      React.createElement(
+        "button",
+        {
+          onClick: () => onDelete(db._id),
+          style: {
+            background: isDarkMode ? "#374151" : "#e5e7eb",
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "none",
+            cursor: "pointer",
+            color: isDarkMode ? "#fff" : "#000",
+            display: "flex",
+            gap: 6,
+            alignItems: "center",
+          },
+        },
+        React.createElement(Trash, { size: 14 }),
+        " Delete"
+      )
+    )
+  );
 }
 
-// ---------- Main Component ----------
+// ✅ Main Component
 export default function ConnectedDatabase() {
-    const { isDarkMode } = useContext(ThemeContext);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [filterOpen, setFilterOpen] = useState(false);
-    const [selectedFilter, setSelectedFilter] = useState("All Databases");
-    const [dbList, setDbList] = useState([]);
-    const [showAddDB, setShowAddDB] = useState(false);
-    const [newDBName, setNewDBName] = useState("");
-    const navigate = useNavigate();
+  const { isDarkMode } = useContext(ThemeContext);
+  const [dbList, setDbList] = useState([]);
+  const [metricsData, setMetricsData] = useState([]);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState("All Databases");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAddDB, setShowAddDB] = useState(false);
+  const [newDBName, setNewDBName] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const navigate = useNavigate();
 
-    // Load from localStorage
-    useEffect(() => {
-        const storedDBs = JSON.parse(localStorage.getItem("dbList") || "[]");
-        const merged = [...storedDBs];
-        initialDatabases.forEach(initDB => {
-            if (!storedDBs.find(db => db.name === initDB.name)) {
-                merged.push(initDB);
-            }
-        });
-        setDbList(merged);
-        localStorage.setItem("dbList", JSON.stringify(merged));
-    }, []);
+  // ✅ Fetch all databases
+  const fetchDatabases = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/monitoring/all");
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.data)) {
+        setDbList(data.data); // ✅ Use the array only
+      } else {
+        console.error("Error fetching DB list:", data);
+        setDbList([]); // ensure it's always an array
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setDbList([]); // fallback safe
+    }
+  };
 
-    const saveToLocalStorage = (updatedList) => {
-        localStorage.setItem("dbList", JSON.stringify(updatedList));
-        setDbList(updatedList);
-    };
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
+  // ✅ Initial fetch + resize listener
+  useEffect(() => {
+    fetchDatabases();
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-    const handleUpdate = (oldName, newName) => {
-        const updated = dbList.map(db => db.name === oldName ? { ...db, name: newName } : db);
-        saveToLocalStorage(updated);
-    };
-
-    const handleDelete = (name) => saveToLocalStorage(dbList.filter(db => db.name !== name));
-    const handleAddDatabase = () => {
-        if (!newDBName.trim()) return;
-        saveToLocalStorage([...dbList, { name: newDBName, status1: "Disconnected", status2: "Disconnected", lastUpdate: "" }]);
-        setNewDBName("");
+  // ✅ Add database
+  const handleAddDatabase = async () => {
+    if (!newDBName.trim()) return;
+    try {
+      const res = await fetch("http://localhost:5000/api/monitoring/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newDBName }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDbList((prev) => [...prev, data.db]);
         setShowAddDB(false);
-    };
+        setNewDBName("");
+      } else {
+        alert("Failed to add database.");
+      }
+    } catch (err) {
+      console.error("Add DB error:", err);
+      alert("Error adding database. Check backend connection.");
+    }
+  };
 
-    const filterOptions = ["All Databases", "Connected", "Disconnected", "Other"];
-    const filteredDbList = dbList.filter(db => {
-        if (selectedFilter === "All Databases") return true;
-        if (selectedFilter === "Connected") return db.status1 === "Connected" || db.status2 === "Connected";
-        if (selectedFilter === "Disconnected") return db.status1 === "Disconnected" && db.status2 === "Disconnected";
-        return true;
+// ✅ Edit database
+const handleUpdate = async (id, newName) => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/monitoring/update/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName }),
     });
 
-    // Styles that depend on dark/light
-    const dynamicStyles = {
-        mainContent: {
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            padding: isMobile ? "8px" : "12px",
-            gap: "8px",
-            height: "100%",
-            justifyContent: "flex-start",
-            background: isDarkMode ? "rgba(30,30,30,0.3)" : "rgba(255,255,255,0.3)",
-        },
-        heading: {
-            color: isDarkMode ? "#0080ffff" : "#0259b1ff",
-            fontSize: isMobile ? "18px" : "20px",
-            margin: 0,
-        },
-        searchInput: {
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      alert("✅ Database updated successfully");
+      fetchDatabases(); // refresh the list
+    } else {
+      console.error("❌ Update failed:", data);
+      alert("Error updating database. Check backend connection");
+    }
+  } catch (err) {
+    console.error("❌ Update request error:", err);
+    alert("Error updating database. Check backend connection");
+  }
+};
+
+
+  // ✅ Delete database
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this database?")) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/monitoring/delete/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDbList((prev) => prev.filter((db) => db._id !== id));
+      } else {
+        alert("Failed to delete database.");
+      }
+    } catch (err) {
+      console.error("Delete DB error:", err);
+      alert("Error deleting database. Check backend connection.");
+    }
+  };
+
+  // ✅ Filtered list
+  const filteredDbList = dbList.filter((db) => {
+    const matchesSearch = db.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    if (selectedFilter === "Connected")
+      return matchesSearch && (db.status1 === "Connected" || db.status2 === "Connected");
+    if (selectedFilter === "Disconnected")
+      return matchesSearch && db.status1 === "Disconnected" && db.status2 === "Disconnected";
+    return matchesSearch;
+  });
+
+  return (
+    <SideBar isMobile={isMobile}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          padding: 12,
+          gap: 8,
+          minHeight: "100vh",
+          background: isDarkMode ? "rgba(10,12,18,0.6)" : "rgba(255,255,255,0.4)",
+        }}
+      >
+        <h2 style={{ color: isDarkMode ? "#48a2ff" : "#0259b1", margin: 0 }}>
+          Connected Databases
+        </h2>
+
+        {/* Search bar */}
+        <input
+          placeholder="Search database..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
             width: "100%",
-            padding: isMobile ? "6px" : "8px",
-            borderRadius: "8px",
+            padding: 8,
+            borderRadius: 8,
             border: "none",
             outline: "none",
-            background: isDarkMode ? "#191C28" : "#f0f0f0",
+            background: isDarkMode ? "#0b1220" : "#f3f4f6",
             color: isDarkMode ? "#fff" : "#000",
-            fontSize: isMobile ? "12px" : "13px",
-            marginBottom: "6px",
-        },
-        filterButton: {
-            background: isDarkMode ? "#191C28" : "#f0f0f0",
-            color: isDarkMode ? "#fff" : "#000",
-            border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-            padding: "6px 12px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: isMobile ? "11px" : "12px",
-            minWidth: "90px",
-            textAlign: "center",
-        },
-    };
+          }}
+        />
 
-    return (
-        <SideBar isMobile={isMobile}>
-            <div style={dynamicStyles.mainContent}>
-                <h2 style={dynamicStyles.heading}>Connected Databases</h2>
-                <input placeholder="Search database..." style={dynamicStyles.searchInput} />
+        {/* Filter + Add buttons */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                background: isDarkMode ? "#0b1220" : "#f3f4f6",
+                color: isDarkMode ? "#fff" : "#000",
+                border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
+                padding: "8px 12px",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+              onClick={() => setFilterOpen((s) => !s)}
+            >
+              {selectedFilter} ▼
+            </button>
+            {filterOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 6px)",
+                  left: 0,
+                  background: isDarkMode ? "#111827" : "#fff",
+                  borderRadius: 8,
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+                  zIndex: 100,
+                  padding: 6,
+                  minWidth: 160,
+                }}
+              >
+                {["All Databases", "Connected", "Disconnected"].map((opt) => (
+                  <div
+                    key={opt}
+                    style={{
+                      padding: 8,
+                      cursor: "pointer",
+                      color: isDarkMode ? "#fff" : "#000",
+                    }}
+                    onClick={() => {
+                      setSelectedFilter(opt);
+                      setFilterOpen(false);
+                    }}
+                  >
+                    {opt}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-                {/* Filter, Settings & Add */}
-                <div style={{ display: "flex", gap: "6px", marginBottom: "6px", flexWrap: "wrap", alignItems: "center" }}>
-                    <div style={{ position: "relative" }}>
-                        <button style={dynamicStyles.filterButton} onClick={() => setFilterOpen(!filterOpen)}>
-                            {selectedFilter} ▼
-                        </button>
-                        {filterOpen && <div style={{
-                            position: "absolute",
-                            background: isDarkMode ? "#1f2937" : "#e5e7eb",
-                            borderRadius: "8px",
-                            marginTop: "4px",
-                            minWidth: "150px",
-                            boxShadow: isDarkMode ? "0 4px 12px rgba(0,0,0,0.3)" : "0 4px 12px rgba(0,0,0,0.1)",
-                            zIndex: 100,
-                        }}>
-                            {filterOptions.map(opt => (
-                                <div key={opt} style={{ padding: "6px 12px", cursor: "pointer", color: isDarkMode ? "#fff" : "#000" }}
-                                    onClick={() => { setSelectedFilter(opt); setFilterOpen(false); }}>{opt}</div>
-                            ))}
-                        </div>}
-                    </div>
+          <button
+            onClick={() => setShowAddDB(true)}
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
+              background: isDarkMode ? "#0b1220" : "#fff",
+              cursor: "pointer",
+              color: isDarkMode ? "#fff" : "#000",
+            }}
+          >
+            <Plus size={14} /> Add Database
+          </button>
+        </div>
 
-                    <button style={dynamicStyles.filterButton} onClick={() => navigate("/AccountSettings")}>⚙️ Settings</button>
-
-                    <button style={dynamicStyles.filterButton} onClick={() => setShowAddDB(true)}><Plus size={14} /> Add Database</button>
-                </div>
-
-                {/* Add DB Modal */}
-                {showAddDB && (
-                    <div style={{
-                        position: "fixed",
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        background: "rgba(0,0,0,0.6)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 200
-                    }}>
-                        <div style={{
-                            background: isDarkMode ? "#191C28" : "#fff",
-                            padding: "20px",
-                            borderRadius: "12px",
-                            width: isMobile ? "90%" : "400px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "12px"
-                        }}>
-                            <h3 style={{ margin: 0, color: "#48a2ff" }}>Add New Database</h3>
-                            <input placeholder="Database Name" value={newDBName} onChange={(e) => setNewDBName(e.target.value)}
-                                style={{
-                                    padding: "8px",
-                                    borderRadius: "8px",
-                                    border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-                                    background: isDarkMode ? "#191C28" : "#f9f9f9",
-                                    color: isDarkMode ? "#fff" : "#000"
-                                }}
-                            />
-                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                                <button style={{
-                                    padding: "6px 12px",
-                                    borderRadius: "6px",
-                                    border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-                                    background: "#374151",
-                                    color: "#fff"
-                                }} onClick={() => setShowAddDB(false)}>Cancel</button>
-                                <button style={{
-                                    padding: "6px 12px",
-                                    borderRadius: "6px",
-                                    border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-                                    background: "#7c3aed",
-                                    color: "#fff"
-                                }} onClick={handleAddDatabase}>Add</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Database List */}
-                <div style={{ flex: 1, overflowY: "auto", marginBottom: "8px" }}>
-                    {filteredDbList.map(db => <DatabaseCard key={db.name} db={db} isMobile={isMobile} isDarkMode={isDarkMode} onUpdate={handleUpdate} onDelete={handleDelete} />)}
-                </div>
-
-                {/* Monitoring Chart */}
-                <div style={{
-                    width: "100%",
-                    minHeight: "60px",
-                    background: isDarkMode ? "#191C28" : "#f9f9f9",
-                    borderRadius: "12px",
-                    border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-                    padding: "2px",
-                    fontSize: "10px",
-                    marginBottom: "2px",
-                    boxShadow: isDarkMode ? "0 2px 4px rgba(0,0,0,0.2)" : "0 2px 4px rgba(0,0,0,0.1)",
-                }}>
-                    <h4 style={{ margin: "2px 0", fontSize: "12px", color: isDarkMode ? "#fff" : "#000" }}>Database Monitoring</h4>
-                    <ResponsiveContainer width="100%" height={190}>
-                        <LineChart data={monitoringData}>
-                            <CartesianGrid stroke={isDarkMode ? "#444" : "#ccc"} strokeDasharray="3 3" />
-                            <XAxis dataKey="time" stroke={isDarkMode ? "#fff" : "#000"} fontSize={10} />
-                            <YAxis stroke={isDarkMode ? "#fff" : "#000"} fontSize={10} />
-                            <Tooltip contentStyle={{ backgroundColor: isDarkMode ? "#1f2937" : "#f0f0f0", border: "none", fontSize: "11px" }} />
-                            <Line type="monotone" dataKey="response" stroke="#48a2ff" strokeWidth={2} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-
-                {/* Connection Health */}
-                <div style={{
-                    width: "100%",
-                    minHeight: "30px",
-                    background: isDarkMode ? "#191C28" : "#f9f9f9",
-                    borderRadius: "12px",
-                    padding: "2px 4px",
-                    color: isDarkMode ? "#fff" : "#000",
-                    border: `1px solid ${isDarkMode ? "#fff" : "#000"}`,
-                    fontSize: "9px",
-                    boxShadow: isDarkMode ? "0 2px 4px rgba(0,0,0,0.2)" : "0 2px 4px rgba(0,0,0,0.1)",
-                    marginBottom: "2px",
-                }}>
-                    <h4 style={{ margin: "0", fontSize: "9px" }}>Connection Health</h4>
-                    <p style={{ margin: "0", fontSize: "8px" }}>All systems running within normal parameters.</p>
-                </div>
+        {/* Add DB Modal */}
+        {showAddDB && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.6)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 200,
+            }}
+          >
+            <div
+              style={{
+                background: isDarkMode ? "#0b1220" : "#fff",
+                padding: 20,
+                borderRadius: 12,
+                width: isMobile ? "92%" : 420,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <h3 style={{ margin: 0, color: "#48a2ff" }}>Add New Database</h3>
+              <input
+                placeholder="Database Name"
+                value={newDBName}
+                onChange={(e) => setNewDBName(e.target.value)}
+                style={{
+                  padding: 10,
+                  borderRadius: 8,
+                  border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
+                  background: isDarkMode ? "#071025" : "#f9fafb",
+                  color: isDarkMode ? "#fff" : "#000",
+                }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button
+                  onClick={() => setShowAddDB(false)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: "#374151",
+                    color: "#fff",
+                    border: "none",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddDatabase}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: "#7c3aed",
+                    color: "#fff",
+                    border: "none",
+                  }}
+                >
+                  Add
+                </button>
+              </div>
             </div>
-        </SideBar>
-    );
+          </div>
+        )}
+
+        {/* Database Cards */}
+        <div style={{ flex: 1, overflowY: "auto", maxHeight: "40vh", paddingTop: 4 }}>
+          {filteredDbList.map((db) => (
+            <DatabaseCard
+              key={db._id}
+              db={db}
+              isMobile={isMobile}
+              isDarkMode={isDarkMode}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+
+        {/* Live Metrics */}
+        <div
+          style={{
+            width: "100%",
+            minHeight: 60,
+            background: isDarkMode ? "#0b1220" : "#f9fafb",
+            borderRadius: 12,
+            border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
+            padding: 8,
+          }}
+        >
+          <h4 style={{ margin: 4, fontSize: 12 }}>Database Monitoring (Live)</h4>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={metricsData}>
+              <CartesianGrid stroke={isDarkMode ? "#1f2937" : "#e6e6e6"} strokeDasharray="3 3" />
+              <XAxis dataKey="time" stroke={isDarkMode ? "#9ca3af" : "#333"} fontSize={10} />
+              <YAxis stroke={isDarkMode ? "#9ca3af" : "#333"} fontSize={10} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isDarkMode ? "#111827" : "#fff",
+                  border: "none",
+                  fontSize: 12,
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="response"
+                stroke="#48a2ff"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Connection Info */}
+        <div
+          style={{
+            width: "100%",
+            minHeight: 40,
+            background: isDarkMode ? "#0b1220" : "#fff",
+            borderRadius: 12,
+            padding: 10,
+            color: isDarkMode ? "#cbd5e1" : "#111827",
+            border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
+            fontSize: 12,
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>Connection Health</div>
+          <div style={{ marginTop: 4, fontSize: 12 }}>
+            Monitoring live metrics from MongoDB serverStatus (or simulated if unavailable).
+          </div>
+        </div>
+      </div>
+    </SideBar>
+  );
 }
-
-
-
-// IF U DONT WANT INITAL SAVED DATA THEN BUT THIS CODE
-// ConnectedDatabase.js
-// import React, { useState, useEffect } from "react";
-// import { Edit, Trash, Plus } from "lucide-react";
-// import { useNavigate } from "react-router-dom";
-// import SideBar from "./SideBar";
-// import {
-//     LineChart,
-//     Line,
-//     XAxis,
-//     YAxis,
-//     Tooltip,
-//     ResponsiveContainer,
-//     CartesianGrid,
-// } from "recharts";
-// import bkg from "./bkg.jpg";
-
-// // ---------- Initial Data ----------
-// const initialDatabases = [
-//     { name: "Project_Alpha", status1: "Connected", status2: "Connected", lastUpdate: "5 sec ago" },
-//     { name: "Posttgfcs_BL", status1: "Connected", status2: "Disconnected", lastUpdate: "" },
-//     { name: "Analytics_DB", status1: "Connected", status2: "Connected", lastUpdate: "" },
-//     { name: "Enterpriss_DB", status1: "Disconnected", status2: "Disconnected", lastUpdate: "21 Days ago" },
-// ];
-
-// const monitoringData = [
-//     { time: "10:00", response: 45 },
-//     { time: "10:05", response: 50 },
-//     { time: "10:10", response: 55 },
-//     { time: "10:15", response: 52 },
-//     { time: "10:20", response: 60 },
-//     { time: "10:30", response: 58 },
-// ];
-
-// // ---------- Styles ----------
-// const styles = {
-//     container: (isMobile) => ({
-//         minHeight: "100vh",
-//         width: "100%",
-//         display: "flex",
-//         justifyContent: "center",
-//         alignItems: "center",
-//         backgroundImage: `url(${bkg})`,
-//         backgroundSize: "cover",
-//         backgroundPosition: "center",
-//         fontFamily: "Inter, sans-serif",
-//         color: "#fff",
-//         padding: isMobile ? "10px 0" : "0px",
-//     }),
-//     mainWrapper: (isMobile) => ({
-//         display: "flex",
-//         flexDirection: isMobile ? "column" : "row",
-//         width: "95%",
-//         height: isMobile ? "auto" : "95vh",
-//         borderRadius: "16px",
-//         border: "2px solid #fff",
-//         overflow: "hidden",
-//         background: "rgba(30,30,30,0.30)",
-//         padding: "0px",
-//         color: "#fff",
-//         boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-//     }),
-//     mainContent: (isMobile) => ({
-//         flex: 1,
-//         display: "flex",
-//         flexDirection: "column",
-//         padding: isMobile ? "8px" : "12px",
-//         gap: "8px",
-//         height: "100%",
-//         justifyContent: "flex-start",
-//     }),
-//     heading: (isMobile) => ({
-//         color: "#48a2ff",
-//         fontSize: isMobile ? "18px" : "20px",
-//         margin: 0,
-//     }),
-//     searchInput: (isMobile) => ({
-//         width: "100%",
-//         padding: isMobile ? "6px" : "8px",
-//         borderRadius: "8px",
-//         border: "none",
-//         outline: "none",
-//         background: "#191C28",
-//         color: "#fff",
-//         fontSize: isMobile ? "12px" : "13px",
-//         marginBottom: "6px",
-//     }),
-//     filterButton: (isMobile) => ({
-//         background: "#191C28",
-//         color: "#fff",
-//         border: "1px solid #fff",
-//         padding: "6px 12px",
-//         borderRadius: "8px",
-//         cursor: "pointer",
-//         fontSize: isMobile ? "11px" : "12px",
-//         minWidth: "90px",
-//         textAlign: "center",
-//     }),
-//     modalOverlay: {
-//         position: "fixed",
-//         top: 0, left: 0, right: 0, bottom: 0,
-//         background: "rgba(0,0,0,0.6)",
-//         display: "flex",
-//         justifyContent: "center",
-//         alignItems: "center",
-//         zIndex: 200
-//     },
-//     modalContent: (isMobile) => ({
-//         background: "#191C28",
-//         padding: "20px",
-//         borderRadius: "12px",
-//         width: isMobile ? "90%" : "400px",
-//         display: "flex",
-//         flexDirection: "column",
-//         gap: "12px"
-//     }),
-//     modalHeading: { margin: 0, color: "#48a2ff" },
-//     modalInput: {
-//         padding: "8px",
-//         borderRadius: "8px",
-//         border: "1px solid #fff",
-//         background: "#191C28",
-//         color: "#fff"
-//     },
-//     modalButtons: { display: "flex", justifyContent: "flex-end", gap: "8px" },
-//     modalButtonCancel: {
-//         padding: "6px 12px",
-//         borderRadius: "6px",
-//         border: "1px solid #fff",
-//         background: "#374151",
-//         color: "#fff"
-//     },
-//     modalButtonAdd: {
-//         padding: "6px 12px",
-//         borderRadius: "6px",
-//         border: "1px solid #fff",
-//         background: "#7c3aed",
-//         color: "#fff"
-//     },
-//     dbCard: (isMobile) => ({
-//         background: "#191C28",
-//         borderRadius: "12px",
-//         padding: "8px",
-//         marginBottom: "7px",
-//         display: "flex",
-//         border: "1px solid #fff",
-//         flexDirection: isMobile ? "column" : "row",
-//         justifyContent: "space-between",
-//         alignItems: isMobile ? "flex-start" : "center",
-//         boxShadow: "0 6px 15px rgba(0,0,0,0.3)",
-//         cursor: "pointer",
-//         fontSize: isMobile ? "12px" : "13px",
-//         transition: "transform 0.2s, box-shadow 0.2s",
-//     }),
-//     dbInfo: { display: "flex", flexDirection: "column", gap: "4px" },
-//     dbStatus: { display: "flex", flexWrap: "wrap", gap: "6px", fontSize: "11px", color: "#fff", alignItems: "center" },
-//     dbButton: {
-//         background: "#374151",
-//         padding: "4px 8px",
-//         borderRadius: "6px",
-//         display: "flex",
-//         alignItems: "center",
-//         gap: "4px",
-//         border: "none",
-//         color: "#fff",
-//         cursor: "pointer",
-//         fontSize: "11px",
-//         transition: "background 0.2s",
-//     },
-//     statusIndicator: (status) => ({
-//         display: "inline-block",
-//         width: "8px",
-//         height: "8px",
-//         borderRadius: "50%",
-//         marginRight: "4px",
-//         backgroundColor: status === "Connected" ? "#22c55e" : "#ef4444",
-//     }),
-//     chartBox: {
-//         width: "100%",
-//         minHeight: "60px",
-//         background: "#191C28",
-//         borderRadius: "12px",
-//         border: "1px solid #fff",
-//         padding: "2px",
-//         fontSize: "10px",
-//         marginBottom: "2px",
-//         boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-//     },
-//     healthBox: {
-//         width: "100%",
-//         minHeight: "30px",
-//         background: "#191C28",
-//         borderRadius: "12px",
-//         padding: "2px 4px",
-//         color: "#fff",
-//         border: "1px solid #fff",
-//         fontSize: "9px",
-//         boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-//         marginBottom: "2px",
-//     }
-// };
-
-// // ---------- Components ----------
-// function StatusIndicator({ status }) {
-//     return <span style={styles.statusIndicator(status)}></span>;
-// }
-
-// function DatabaseCard({ db, isMobile, onUpdate, onDelete }) {
-//     const [isEditing, setIsEditing] = React.useState(false);
-//     const [newName, setNewName] = React.useState(db.name);
-
-//     return (
-//         <div
-//             style={styles.dbCard(isMobile)}
-//             onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-//             onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0px)")}
-//         >
-//             <div style={styles.dbInfo}>
-//                 {isEditing ? (
-//                     <input
-//                         value={newName}
-//                         onChange={(e) => setNewName(e.target.value)}
-//                         onBlur={() => { onUpdate(db.name, newName); setIsEditing(false); }}
-//                         onKeyDown={(e) => { if (e.key === "Enter") { onUpdate(db.name, newName); setIsEditing(false); } }}
-//                         style={styles.modalInput}
-//                         autoFocus
-//                     />
-//                 ) : (
-//                     <div style={{ fontWeight: "600", color: "#fff", fontSize: isMobile ? "13px" : "14px" }}>{db.name}</div>
-//                 )}
-//                 <div style={styles.dbStatus}>
-//                     {db.lastUpdate && <span style={{ color: "#9ca3af" }}>{db.lastUpdate}</span>}
-//                     <span style={{ display: "flex", alignItems: "center" }}>
-//                         <StatusIndicator status={db.status1} />
-//                         {db.status1}
-//                     </span>
-//                     <span style={{ display: "flex", alignItems: "center" }}>
-//                         <StatusIndicator status={db.status2} />
-//                         {db.status2}
-//                     </span>
-//                 </div>
-//             </div>
-//             <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-//                 <button style={styles.dbButton} onClick={() => setIsEditing(true)}><Edit size={12} /> Edit</button>
-//                 <button style={styles.dbButton} onClick={() => onDelete(db.name)}><Trash size={12} /> Delete</button>
-//             </div>
-//         </div>
-//     );
-// }
-
-// // ---------- Main Component ----------
-// export default function ConnectedDatabase() {
-//     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-//     const [filterOpen, setFilterOpen] = useState(false);
-//     const [selectedFilter, setSelectedFilter] = useState("All Databases");
-//     const [dbList, setDbList] = useState([]);
-//     const [showAddDB, setShowAddDB] = useState(false);
-//     const [showSettings, setShowSettings] = useState(false);
-//     const [newDBName, setNewDBName] = useState("");
-//     const navigate = useNavigate();
-
-//     // ---------- Load from localStorage ----------
-//     useEffect(() => {
-//         const storedDBs = localStorage.getItem("dbList");
-//         if (storedDBs) setDbList(JSON.parse(storedDBs));
-//         else {
-//             localStorage.setItem("dbList", JSON.stringify(initialDatabases));
-//             setDbList(initialDatabases);
-//         }
-//     }, []);
-
-//     // ---------- Save to localStorage ----------
-//     const saveToLocalStorage = (updatedList) => {
-//         localStorage.setItem("dbList", JSON.stringify(updatedList));
-//         setDbList(updatedList);
-//     };
-
-//     useEffect(() => {
-//         const handleResize = () => setIsMobile(window.innerWidth < 768);
-//         window.addEventListener("resize", handleResize);
-//         return () => window.removeEventListener("resize", handleResize);
-//     }, []);
-
-//     const handleNavigate = (path) => navigate(path);
-
-//     const handleUpdate = (oldName, newName) => {
-//         const updated = dbList.map(db => db.name === oldName ? { ...db, name: newName } : db);
-//         saveToLocalStorage(updated);
-//     };
-
-//     const handleDelete = (name) => {
-//         const updated = dbList.filter(db => db.name !== name);
-//         saveToLocalStorage(updated);
-//     };
-
-//     const handleAddDatabase = () => {
-//         if (!newDBName.trim()) return;
-//         const updated = [...dbList, { name: newDBName, status1: "Disconnected", status2: "Disconnected", lastUpdate: "" }];
-//         saveToLocalStorage(updated);
-//         setNewDBName("");
-//         setShowAddDB(false);
-//     };
-
-//     const filterOptions = ["All Databases", "Connected", "Disconnected", "Other"];
-//     const filteredDbList = dbList.filter(db => {
-//         if (selectedFilter === "All Databases") return true;
-//         if (selectedFilter === "Connected") return db.status1 === "Connected" || db.status2 === "Connected";
-//         if (selectedFilter === "Disconnected") return db.status1 === "Disconnected" && db.status2 === "Disconnected";
-//         return true;
-//     });
-
-//     return (
-//         <div style={styles.container(isMobile)}>
-//             <div style={styles.mainWrapper(isMobile)}>
-//                 <SideBar isMobile={isMobile} handleNavigate={handleNavigate} />
-
-//                 <div style={styles.mainContent(isMobile)}>
-//                     <h2 style={styles.heading(isMobile)}>Connected Databases</h2>
-//                     <input placeholder="Search database..." style={styles.searchInput(isMobile)} />
-
-//                     {/* Filter, Settings & Add */}
-//                     <div style={{ display: "flex", gap: "6px", marginBottom: "6px", flexWrap: "wrap", alignItems: "center" }}>
-//                         <div style={{ position: "relative" }}>
-//                             <button style={styles.filterButton(isMobile)} onClick={() => setFilterOpen(!filterOpen)}>
-//                                 {selectedFilter} ▼
-//                             </button>
-//                             {filterOpen && <div style={{
-//                                 position: "absolute",
-//                                 background: "#1f2937",
-//                                 borderRadius: "8px",
-//                                 marginTop: "4px",
-//                                 minWidth: "150px",
-//                                 boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-//                                 zIndex: 100,
-//                             }}>
-//                                 {filterOptions.map(opt => (
-//                                     <div key={opt} style={{ padding: "6px 12px", cursor: "pointer", color: "#fff" }}
-//                                          onClick={() => { setSelectedFilter(opt); setFilterOpen(false); }}>{opt}</div>
-//                                 ))}
-//                             </div>}
-//                         </div>
-
-//                         <button style={styles.filterButton(isMobile)} onClick={() => handleNavigate("/AccountSettings")}>⚙️ Settings</button>
-
-//                         <button style={styles.filterButton(isMobile)} onClick={() => setShowAddDB(true)}><Plus size={14} /> Add Database</button>
-//                     </div>
-
-//                     {/* Add DB Modal */}
-//                     {showAddDB && (
-//                         <div style={styles.modalOverlay}>
-//                             <div style={styles.modalContent(isMobile)}>
-//                                 <h3 style={styles.modalHeading}>Add New Database</h3>
-//                                 <input placeholder="Database Name" value={newDBName} onChange={(e) => setNewDBName(e.target.value)} style={styles.modalInput} />
-//                                 <div style={styles.modalButtons}>
-//                                     <button style={styles.modalButtonCancel} onClick={() => setShowAddDB(false)}>Cancel</button>
-//                                     <button style={styles.modalButtonAdd} onClick={handleAddDatabase}>Add</button>
-//                                 </div>
-//                             </div>
-//                         </div>
-//                     )}
-
-//                     {/* Database List */}
-//                     <div style={{ flex: 1, overflowY: "auto", marginBottom: "8px" }}>
-//                         {filteredDbList.map(db => <DatabaseCard key={db.name} db={db} isMobile={isMobile} onUpdate={handleUpdate} onDelete={handleDelete} />)}
-//                     </div>
-
-//                     {/* Monitoring Chart */}
-//                     <div style={styles.chartBox}>
-//                         <h4 style={{ margin: "2px 0", fontSize: "12px" }}>Database Monitoring</h4>
-//                         <ResponsiveContainer width="100%" height={190}>
-//                             <LineChart data={monitoringData}>
-//                                 <CartesianGrid stroke="#444" strokeDasharray="3 3" />
-//                                 <XAxis dataKey="time" stroke="#fff" fontSize={10} />
-//                                 <YAxis stroke="#fff" fontSize={10} />
-//                                 <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "none", fontSize: "11px" }} />
-//                                 <Line type="monotone" dataKey="response" stroke="#48a2ff" strokeWidth={2} />
-//                             </LineChart>
-//                         </ResponsiveContainer>
-//                     </div>
-
-//                     {/* Connection Health */}
-//                     <div style={styles.healthBox}>
-//                         <h4 style={{ margin: "0", fontSize: "9px" }}>Connection Health</h4>
-//                         <p style={{ margin: "0", fontSize: "8px" }}>All systems running within normal parameters.</p>
-//                     </div>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }

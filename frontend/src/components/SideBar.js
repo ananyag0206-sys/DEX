@@ -6,11 +6,14 @@ import bkg2 from "./bkg2.png"; // Light mode background
 import { ThemeContext } from "./ThemeContext";
 import { supabase } from "./supabase-client"; // ✅ Import Supabase
 
+
 export default function SideBar({ children }) {
-    const { isDarkMode, toggleTheme } = useContext(ThemeContext); // get theme from context
+    const { isDarkMode, toggleTheme } = useContext(ThemeContext);
+
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     const navigate = useNavigate();
+    
     const handleNavigate = (path) => navigate(path);
 
     useEffect(() => {
@@ -140,6 +143,11 @@ export default function SideBar({ children }) {
                             <li>
                                 <button onClick={() => handleNavigate("/AIinsights")} style={styles.navButton}>
                                     AI Insights
+                                </button>
+                            </li>
+                            <li>
+                                <button onClick={() => handleNavigate("/account-settings")} style={styles.navButton}>
+                                    Settings
                                 </button>
                             </li>
                         </ul>
