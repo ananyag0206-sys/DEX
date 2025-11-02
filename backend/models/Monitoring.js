@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
-// Define schema with safe defaults
+// Schema definition
 const monitoringSchema = new mongoose.Schema({
   name: { type: String, required: true },
   status1: { type: String, default: "Connected" },
   status2: { type: String, default: "Connected" },
   latency: { type: Number, default: 0 },
-  lastUpdate: { type: String },
+  lastUpdate: { type: String, default: new Date().toLocaleTimeString() },
   analytics: [
     {
       time: String,
@@ -15,40 +15,16 @@ const monitoringSchema = new mongoose.Schema({
   ],
 });
 
-// Check if old collection name exists to preserve existing data
-async function resolveModelName() {
-  const existingCollections = (await mongoose.connection.db
-    .listCollections()
-    .toArray()).map((c) => c.name);
-
-  // If old collection exists, continue using it
-  if (existingCollections.includes("monitoringdatas")) {
-    return "MonitoringData";
-  }
-
-  // Otherwise, use the new name
-  return "Monitoring";
-}
-
-// Dynamically register the model (avoids duplicate compilation errors)
+// 🧠 Migration-safe model loader
 let Monitoring;
-if (mongoose.models.MonitoringData) {
-  Monitoring = mongoose.models.MonitoringData;
-} else if (mongoose.models.Monitoring) {
+
+// Avoid model overwrite errors
+if (mongoose.models.Monitoring) {
   Monitoring = mongoose.models.Monitoring;
+} else if (mongoose.models.MonitoringData) {
+  Monitoring = mongoose.models.MonitoringData;
 } else {
-  // Default placeholder model; name will be updated after connection
   Monitoring = mongoose.model("Monitoring", monitoringSchema);
-
-  // When connected, adjust to the right collection name
-  mongoose.connection.once("open", async () => {
-    const modelName = await resolveModelName();
-
-    if (!mongoose.models[modelName]) {
-      mongoose.model(modelName, monitoringSchema);
-      console.log(`✅ Using collection: ${modelName}`);
-    }
-  });
 }
 
 export default Monitoring;

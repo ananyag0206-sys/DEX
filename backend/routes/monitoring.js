@@ -4,18 +4,18 @@ import Monitoring from "../models/Monitoring.js";
 
 const router = express.Router();
 
-// 🧠 Utility
+// Utility for health check
 async function checkMongoLatency() {
   const start = Date.now();
   try {
     await mongoose.connection.db.admin().ping();
     return { status: "Connected", latency: Date.now() - start };
-  } catch (err) {
+  } catch {
     return { status: "Disconnected", latency: 0 };
   }
 }
 
-// ✅ Get all databases
+// 🟩 Get all DBs
 router.get("/all", async (req, res) => {
   try {
     const data = await Monitoring.find();
@@ -26,11 +26,12 @@ router.get("/all", async (req, res) => {
   }
 });
 
-// ✅ Add new database
+// 🟩 Add database
 router.post("/add", async (req, res) => {
   try {
     const { name } = req.body;
-    if (!name) return res.status(400).json({ success: false, error: "Name required" });
+    if (!name?.trim())
+      return res.status(400).json({ success: false, error: "Name required" });
 
     const { status, latency } = await checkMongoLatency();
 
@@ -43,7 +44,6 @@ router.post("/add", async (req, res) => {
       analytics: [{ time: new Date().toLocaleTimeString(), response: latency }],
     });
 
-    console.log("✅ Added:", newDB.name);
     res.json({ success: true, db: newDB });
   } catch (err) {
     console.error("❌ Add error:", err.message);
@@ -51,17 +51,14 @@ router.post("/add", async (req, res) => {
   }
 });
 
-// ✅ Update database name
+// 🟩 Update database
 router.put("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
 
-    console.log("📡 Update request →", id, name);
-
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ success: false, error: "Invalid ID" });
-
     if (!name?.trim())
       return res.status(400).json({ success: false, error: "Name required" });
 
@@ -71,12 +68,9 @@ router.put("/update/:id", async (req, res) => {
       { new: true }
     );
 
-    if (!updated) {
-      console.log("⚠️ No document found for ID:", id);
-      return res.status(404).json({ success: false, error: "Database not found" });
-    }
+    if (!updated)
+      return res.status(404).json({ success: false, error: "Not found" });
 
-    console.log("✅ Updated:", updated.name);
     res.json({ success: true, db: updated });
   } catch (err) {
     console.error("❌ Update error:", err.message);
@@ -84,15 +78,19 @@ router.put("/update/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete database
+// 🟩 Delete database
 router.delete("/delete/:id", async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ success: false, error: "Invalid ID" });
+
     await Monitoring.findByIdAndDelete(id);
     res.json({ success: true });
   } catch (err) {
     console.error("❌ Delete error:", err.message);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, error: "Delete failed" });
   }
 });
 
