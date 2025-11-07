@@ -1,4 +1,4 @@
-import { CircleUserRound, Cog, SunMoon } from "lucide-react";
+import { CircleUserRound, SunMoon } from "lucide-react";
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import bkg from "./bkg.jpg";
@@ -44,10 +44,7 @@ export default function Signup() {
                 .eq("username", username)
                 .maybeSingle();
 
-            if (usernameCheckError) {
-                console.error("Error checking username:", usernameCheckError);
-                throw usernameCheckError;
-            }
+            if (usernameCheckError) throw usernameCheckError;
 
             if (existingUser) {
                 setError("Username already taken. Please choose another one.");
@@ -79,7 +76,7 @@ export default function Signup() {
                         user_id: data.user.id,
                         username,
                         email,
-                        name: username || null, // ✅ prevent null violation
+                        name: username || null, // prevent null violation
                     },
                 ]);
 
@@ -87,7 +84,8 @@ export default function Signup() {
                     console.error("Insert error:", insertError.message);
                     setError("Signup successful, but failed to save user info.");
                 } else {
-                    alert("Signup successful! Check your email for verification before logging in."); navigate("/");
+                    alert("Signup successful! Check your email for verification before logging in.");
+                    navigate("/");
                 }
             }
         } catch (err) {
@@ -97,7 +95,6 @@ export default function Signup() {
 
         setLoading(false);
     };
-
 
     // 🎨 Styles
     const styles = {
@@ -150,14 +147,6 @@ export default function Signup() {
             backgroundOrigin: "border-box",
             backgroundClip: "padding-box, border-box",
         },
-        options: {
-            width: "70%",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color: isDarkMode ? "#cfcfcf" : "#000",
-            margin: "0 auto 20px",
-        },
         signupBtn: {
             minWidth: "30%",
             padding: "10px",
@@ -173,54 +162,53 @@ export default function Signup() {
             backgroundOrigin: "border-box",
             backgroundClip: "padding-box, border-box",
         },
-        boxx: {
+        topBar: {
+            // display: "flex",
+            // alignItems: "center",
+            // justifyContent: "space-between",
+            // gap: "10px",
+            // padding: "10px 20px",
+            // minWidth: "10vw",
+            // borderRadius: "35px",
+            // border: "2px solid transparent",
+            // backgroundImage: isDarkMode
+            //     ? "linear-gradient(#25257F, #1B1B37), linear-gradient(45deg, #D9B8DF, #5E15D4)"
+            //     : "linear-gradient(45deg, #ccd6fcff, #F5F7FF), linear-gradient(45deg, #6A9CFF, #F5F3FA)",
+            // backgroundOrigin: "border-box",
+            // backgroundClip: "padding-box, border-box",
+            // color: isDarkMode ? "#fff" : "#000",
+            // fontWeight: "bold",
+            // position: "fixed",
+            // top: "20px",
+            // right: "20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: "10px",
-            padding: "10px 20px",
-            minWidth: "10vw",
-            borderRadius: "35px",
-            border: "2px solid transparent",
-            backgroundImage: isDarkMode
-                ? "linear-gradient(#25257F, #1B1B37), linear-gradient(45deg, #D9B8DF, #5E15D4)"
-                : "linear-gradient(45deg, #ccd6fcff, #F5F7FF), linear-gradient(45deg, #6A9CFF, #F5F3FA)",
-            backgroundOrigin: "border-box",
-            backgroundClip: "padding-box, border-box",
-            color: isDarkMode ? "#fff" : "#000",
-            fontWeight: "bold",
             position: "fixed",
             top: "20px",
             right: "20px",
+            gap: "20px",
         },
-        navbtn: { background: "none", border: "none", cursor: "pointer", color: "#000" },
-        circleIcon: {
-            minWidth: "2vw",
-            minHeight: "4vh",
-            borderRadius: "50%",
-            background: "#fff",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            cursor: "pointer",
-            transition: "all 0.3s ease",
+        errorText: {
+            color: "#ff6b6b",
+            marginBottom: "10px",
+            fontWeight: "500",
         },
-        iconGroup: { display: "flex", alignItems: "center", gap: "30px", color: isDarkMode ? "#fff" : "#000" },
-        errorText: { color: "#ff6b6b", marginBottom: "10px", fontWeight: "500" },
     };
 
     return (
         <div style={styles.container}>
-            {/* Top Icon Bar */}
-            <div style={styles.boxx}>
-                <div style={styles.iconGroup}>
-                    <div style={styles.circleIcon}><button style={styles.navbtn}><Cog /></button></div>
-                    <div style={styles.circleIcon}><button style={styles.navbtn} onClick={() => navigate("/")}><CircleUserRound /></button></div>
-                    <div style={styles.circleIcon}><button style={styles.navbtn} onClick={toggleTheme}><SunMoon size={28} strokeWidth={1.75} /></button></div>
+            {/* 🌙 Top Icon Bar */}
+            <div style={styles.topBar}>
+                <div style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
+                    <CircleUserRound />
+                </div>
+                <div style={{ cursor: "pointer" }} onClick={toggleTheme}>
+                    <SunMoon size={28} strokeWidth={1.75} />
                 </div>
             </div>
 
-            {/* Signup Box */}
+            {/* 📝 Signup Box */}
             <div style={styles.box}>
                 <h1 style={styles.heading}>DEX</h1>
                 {error && <p style={styles.errorText}>{error}</p>}
@@ -231,16 +219,11 @@ export default function Signup() {
                     <input type="password" name="password" placeholder="Password" style={styles.input} required />
                     <input type="password" name="confirmPassword" placeholder="Confirm Password" style={styles.input} required />
 
-                    {/* <div style={styles.options}>
-                        <div className="form-check form-switch">
-                            <input className="form-check-input" type="checkbox" id="flexSwitchCheckDefault" />
-                            <label className="form-check-label" htmlFor="flexSwitchCheckDefault">Remember me</label>
-                        </div>
-                    </div> */}
-
-                    <button type="submit" style={styles.signupBtn}>
-                        {loading ? "Loading..." : "Sign Up"}
-                    </button>
+                    <div>
+                        <button type="submit" style={styles.signupBtn}>
+                            {loading ? "Loading..." : "Sign Up"}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
