@@ -37,7 +37,7 @@ import { ThemeContext } from "./ThemeContext";
  * - GET  /api/monitoring/open/:id
  *
  * Ollama chat:
- * - POST /api/chat  -> { message }  returns { reply }
+ * POST /api/chat  -> { message }  returns { reply }
  */
 
 // small StatusIndicator component (keeps previous inline style)
