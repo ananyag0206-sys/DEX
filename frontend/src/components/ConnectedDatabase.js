@@ -14,6 +14,32 @@ import {
 } from "recharts";
 import { ThemeContext } from "./ThemeContext";
 
+/**
+ * Full ConnectedDatabase component
+ *
+ * Features:
+ * - Fetch databases from backend
+ * - Add database (name, mongoUrl, schema upload, prismaPort)
+ * - Upload schema file to backend
+ * - Open Prisma Studio via /open/:id
+ * - Open schema file via static /uploads link
+ * - Edit name inline
+ * - Delete database
+ * - Live metrics chart (first DB)
+ * - Ollama chat (AI assistant)
+ *
+ * Backend endpoints assumed:
+ * - GET  /api/monitoring/all
+ * - POST /api/monitoring/add
+ * - POST /api/monitoring/upload-schema
+ * - DELETE /api/monitoring/delete/:id
+ * - PUT /api/monitoring/update/:id
+ * - GET  /api/monitoring/open/:id
+ *
+ * Ollama chat:
+ * - POST /api/chat  -> { message }  returns { reply }
+ */
+
 // small StatusIndicator component (keeps previous inline style)
 function StatusIndicator({ status }) {
   return (
