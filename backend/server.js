@@ -13,6 +13,11 @@ import connectDB from "./config/db.js";
 import monitoringRoutes from "./routes/monitoring.js";
 import Monitoring from "./models/modelsMonitoring.js";
 
+// =======================
+// 🔹 Qdrant Integration
+// =======================
+import { createCollection, insertVector, searchVector } from "./config/qdrant.js";
+
 dotenv.config();
 
 const app = express();
@@ -35,7 +40,7 @@ connectDB();
 // 🏠 Root Route
 // ======================================================
 app.get("/", (req, res) => {
-  res.send("💙 DEX Backend Active: AI + MongoDB + Prisma Monitoring Running!");
+  res.send("💙 DEX Backend Active: AI + MongoDB + Prisma + Qdrant Monitoring Running!");
 });
 
 // ======================================================
@@ -74,7 +79,7 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // ======================================================
-// 🧩 Monitoring Routes (Prisma + Mongo)
+// 🧩 Monitoring Routes (Prisma + Mongo + Qdrant)
 // ======================================================
 app.use("/api/monitoring", monitoringRoutes);
 console.log("✅ Monitoring routes registered at /api/monitoring");
@@ -117,18 +122,19 @@ app.post("/api/monitoring/upload-schema", upload.single("file"), (req, res) => {
 // ======================================================
 // 🩺 MongoDB Health Monitor
 // ======================================================
-async function checkMongoLatency() {
+async function checkMongoLatency(mongoUri) {
   const start = Date.now();
   try {
     if (!mongoose.connection.readyState) {
-      await mongoose.connect(process.env.MONGO_URL, {
+      await mongoose.connect(mongoUri || process.env.MONGO_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
     }
     await mongoose.connection.db.admin().ping();
     return { status: "Connected", latency: Date.now() - start };
-  } catch {
+  } catch (err) {
+    console.error("⚠️ MongoDB Ping Error:", err?.message || err);
     return { status: "Disconnected", latency: 0 };
   }
 }
@@ -141,7 +147,34 @@ async function autoRefresh() {
     const allDatabases = await Monitoring.find();
 
     for (let db of allDatabases) {
-      const { status, latency } = await checkMongoLatency();
+      let status = "Unknown";
+      let latency = 0;
+
+      if (db.dbType === "mongo") {
+        const r = await checkMongoLatency(db.mongoUrl);
+        status = r.status;
+        latency = r.latency;
+      }
+
+      if (db.dbType === "sql") {
+        console.warn("⚠️ SQL latency currently uses Mongo latency as placeholder");
+        const r = await checkMongoLatency(db.mongoUrl);
+        status = r.status;
+        latency = r.latency;
+      }
+
+      if (db.dbType === "qdrant") {
+        try {
+          const start = Date.now();
+          await fetch(`${db.qdrantUrl || "http://qdrant:6333"}/collections`);
+          status = "Connected";
+          latency = Date.now() - start;
+        } catch (err) {
+          console.error("⚠️ Qdrant Ping Error:", err.message);
+          status = "Disconnected";
+          latency = 0;
+        }
+      }
 
       db.status1 = status;
       db.status2 = status;
@@ -173,12 +206,11 @@ app.get("/api/monitoring/open/:id", async (req, res) => {
       return res.status(404).json({ success: false, message: "Database not found or no Prisma port." });
     }
 
-    exec(`npx prisma studio --port ${db.prismaPort}`, (error) => {
-      if (error) {
-        console.error(`❌ Prisma Studio failed on port ${db.prismaPort}:`, error.message);
-      } else {
-        console.log(`🚀 Prisma Studio running on http://localhost:${db.prismaPort}`);
-      }
+    exec(`npx prisma studio --port ${db.prismaPort}`, (error, stdout, stderr) => {
+      if (error) console.error("❌ Prisma Studio failed:", error.message);
+      if (stderr) console.error("❌ Prisma Studio stderr:", stderr);
+      if (stdout) console.log("✅ Prisma Studio stdout:", stdout);
+      else console.log(`🚀 Prisma Studio running on http://localhost:${db.prismaPort}`);
     });
 
     return res.json({
@@ -193,8 +225,53 @@ app.get("/api/monitoring/open/:id", async (req, res) => {
 });
 
 // ======================================================
+// 🔹 Qdrant Test Route with Vector Validation
+// ======================================================
+app.post("/api/qdrant/test", async (req, res) => {
+  try {
+    const { collectionName, vector, payload, dbName } = req.body;
+
+    if (!collectionName || !vector || !Array.isArray(vector)) {
+      return res.status(400).json({ success: false, message: "collectionName and valid vector array required" });
+    }
+
+    // Optional: validate vector dimensions
+    const VECTOR_DIM = 1536;
+    if (vector.length !== VECTOR_DIM) {
+      return res.status(400).json({ success: false, message: `Vector must have ${VECTOR_DIM} dimensions` });
+    }
+
+    // Use Monitoring DB's Qdrant URL if dbName provided
+    let qdrantUrl = "http://qdrant:6333";
+    if (dbName) {
+      const db = await Monitoring.findOne({ name: dbName, dbType: "qdrant" });
+      if (db?.qdrantUrl) qdrantUrl = db.qdrantUrl;
+    }
+
+    // 1️⃣ Create collection if not exists
+    await createCollection(collectionName, qdrantUrl);
+
+    // 2️⃣ Insert vector
+    await insertVector(collectionName, vector, payload || {}, qdrantUrl);
+
+    res.json({ success: true, message: "Vector inserted into Qdrant successfully" });
+  } catch (err) {
+    console.error("❌ Qdrant Error:", err.message);
+    res.status(500).json({ success: false, message: "Error inserting vector into Qdrant" });
+  }
+});
+
+// ======================================================
 // 🚀 Start Server
 // ======================================================
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`✅ Server running → http://localhost:${PORT}`);
+
+  // Optional: Initialize default Qdrant collection
+  try {
+    await createCollection("default_collection", "http://qdrant:6333");
+    console.log("🔹 Qdrant default collection initialized");
+  } catch (err) {
+    console.error("❌ Failed to create default Qdrant collection:", err.message);
+  }
 });

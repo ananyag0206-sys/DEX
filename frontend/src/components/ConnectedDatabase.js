@@ -14,32 +14,6 @@ import {
 } from "recharts";
 import { ThemeContext } from "./ThemeContext";
 
-/**
- * Full ConnectedDatabase component
- *
- * Features:
- * - Fetch databases from backend
- * - Add database (name, mongoUrl, schema upload, prismaPort)
- * - Upload schema file to backend
- * - Open Prisma Studio via /open/:id
- * - Open schema file via static /uploads link
- * - Edit name inline
- * - Delete database
- * - Live metrics chart (first DB)
- * - Ollama chat (AI assistant)
- *
- * Backend endpoints assumed:
- * - GET  /api/monitoring/all
- * - POST /api/monitoring/add
- * - POST /api/monitoring/upload-schema
- * - DELETE /api/monitoring/delete/:id
- * - PUT /api/monitoring/update/:id
- * - GET  /api/monitoring/open/:id
- *
- * Ollama chat:
- * POST /api/chat  -> { message }  returns { reply }
- */
-
 // small StatusIndicator component (keeps previous inline style)
 function StatusIndicator({ status }) {
   return (
@@ -67,28 +41,37 @@ function StatusIndicator({ status }) {
  * - onOpenPrisma(id) -> open prisma studio for this db (calls backend)
  */
 function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPrisma }) {
-  // --- Editable state
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState(db.name || "");
-  const [isCopied, setIsCopied] = useState(false);
+  const [isCopiedPrisma, setIsCopiedPrisma] = useState(false);
+  const [isCopiedQdrant, setIsCopiedQdrant] = useState(false);
 
-  // Keep the input in sync if parent updates the db name
   useEffect(() => setNewName(db.name || ""), [db.name]);
 
-  // Copy Prisma url (local port preferred)
+  // --- Handlers ---
   const handleCopyPrismaUrl = async () => {
     const url = db.prismaPort ? `http://localhost:${db.prismaPort}` : db.prismaUrl || "";
     try {
       await navigator.clipboard.writeText(url);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 1800);
+      setIsCopiedPrisma(true);
+      setTimeout(() => setIsCopiedPrisma(false), 1800);
     } catch {
-      setIsCopied(false);
+      setIsCopiedPrisma(false);
       alert("Copy failed — please copy manually.");
     }
   };
 
-  // Save edited name: call parent onUpdate and close edit mode
+  const handleCopyQdrantUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(db.qdrantUrl);
+      setIsCopiedQdrant(true);
+      setTimeout(() => setIsCopiedQdrant(false), 1800);
+    } catch {
+      setIsCopiedQdrant(false);
+      alert("Copy failed — please copy manually.");
+    }
+  };
+
   const handleSaveEdit = async () => {
     if (!newName?.trim()) {
       alert("Please enter a valid name.");
@@ -98,10 +81,23 @@ function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPris
       await onUpdate(db._id, newName);
       setIsEditing(false);
     } catch (err) {
-      // onUpdate shows alerts on failure; still close? keep open to allow retry
       console.error("Update failed:", err);
     }
   };
+
+  // --- Styles ---
+  const buttonStyle = {
+    padding: "6px 8px",
+    borderRadius: 8,
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    gap: 6,
+    alignItems: "center",
+    fontSize: 13,
+  };
+
+  const actionButtonStyle = (bg, color) => ({ ...buttonStyle, background: bg, color });
 
   return (
     <div
@@ -119,11 +115,10 @@ function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPris
         cursor: "default",
       }}
     >
-      {/* Left content: name + meta */}
+      {/* Left: Name + Meta */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-        {/* Name (clickable to open Prisma) */}
+        {/* Name */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", minWidth: 0 }}>
-          {/* Editable input or static name */}
           {isEditing ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
@@ -147,52 +142,45 @@ function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPris
                   minWidth: isMobile ? 120 : 220,
                 }}
               />
-
-              <button
-                onClick={handleSaveEdit}
-                title="Save name"
-                style={{
-                  padding: "6px 8px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "#48a2ff",
-                  color: "#fff",
-                  cursor: "pointer",
-                  fontSize: 13,
-                }}
-              >
+              <button onClick={handleSaveEdit} title="Save name" style={actionButtonStyle("#48a2ff", "#fff")}>
                 Save
               </button>
-
               <button
                 onClick={() => {
                   setNewName(db.name || "");
                   setIsEditing(false);
                 }}
                 title="Cancel"
-                style={{
-                  padding: "6px 8px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: isDarkMode ? "#374151" : "#e5e7eb",
-                  color: isDarkMode ? "#fff" : "#000",
-                  cursor: "pointer",
-                  fontSize: 13,
-                }}
+                style={actionButtonStyle(isDarkMode ? "#374151" : "#e5e7eb", isDarkMode ? "#fff" : "#000")}
               >
                 Cancel
               </button>
             </div>
           ) : (
             <div
-              onClick={() => onOpenPrisma(db)}
-              title={db.prismaPort ? `Open Prisma Studio (port ${db.prismaPort})` : "Prisma port not set"}
+              onClick={() => db.dbType !== "qdrant" && onOpenPrisma(db)}
+              title={
+                db.dbType !== "qdrant"
+                  ? db.prismaPort
+                    ? `Open Prisma Studio (port ${db.prismaPort})`
+                    : "Prisma port not set"
+                  : ""
+              }
               style={{
                 fontWeight: 700,
                 fontSize: isMobile ? 13 : 15,
-                color: db.prismaPort ? "#48a2ff" : isDarkMode ? "#94a3b8" : "#334155",
-                cursor: db.prismaPort ? "pointer" : "default",
-                textDecoration: db.prismaPort ? "underline" : "none",
+                color:
+                  db.dbType !== "qdrant"
+                    ? db.prismaPort
+                      ? "#48a2ff"
+                      : isDarkMode
+                        ? "#94a3b8"
+                        : "#334155"
+                    : isDarkMode
+                      ? "#cbd5e1"
+                      : "#475569",
+                cursor: db.dbType !== "qdrant" && db.prismaPort ? "pointer" : "default",
+                textDecoration: db.dbType !== "qdrant" && db.prismaPort ? "underline" : "none",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -203,8 +191,8 @@ function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPris
             </div>
           )}
 
-          {/* small tag showing port */}
-          {db.prismaPort ? (
+          {/* Prisma Port Badge */}
+          {db.dbType !== "qdrant" && db.prismaPort && (
             <div
               style={{
                 padding: "2px 8px",
@@ -218,106 +206,78 @@ function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPris
             >
               {db.prismaPort}
             </div>
-          ) : null}
+          )}
         </div>
 
-        {/* meta row: lastUpdate, statuses */}
+        {/* Meta */}
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", fontSize: 12 }}>
           {db.lastUpdate && <span style={{ color: "#9ca3af" }}>{db.lastUpdate}</span>}
-
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <StatusIndicator status={db.status1 || "Disconnected"} />
             <span style={{ fontSize: 12 }}>{db.status1 || "Unknown"}</span>
           </span>
-
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <StatusIndicator status={db.status2 || "Disconnected"} />
             <span style={{ fontSize: 12 }}>{db.status2 || "Unknown"}</span>
           </span>
 
-          {/* Schema link */}
-          {db.schemaPath ? (
-            <a
-              href={`http://localhost:5000${db.schemaPath}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                fontSize: 12,
-                color: isDarkMode ? "#93c5fd" : "#0369a1",
-                textDecoration: "underline",
-              }}
-              title="Open uploaded Prisma schema file"
-            >
-              View Schema
-            </a>
+          {db.dbType !== "qdrant" ? (
+            db.schemaPath ? (
+              <a
+                href={`http://localhost:5000${db.schemaPath}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: 12, color: isDarkMode ? "#93c5fd" : "#0369a1", textDecoration: "underline" }}
+                title="Open uploaded Prisma schema file"
+              >
+                View Schema
+              </a>
+            ) : (
+              <span style={{ fontSize: 12, color: "#9ca3af" }}>No schema</span>
+            )
           ) : (
-            <span style={{ fontSize: 12, color: "#9ca3af" }}>No schema</span>
+            <span style={{ fontSize: 12, color: isDarkMode ? "#cbd5e1" : "#475569" }}>
+              Qdrant URL: {db.qdrantUrl || "-"}
+            </span>
           )}
         </div>
       </div>
 
-      {/* Right actions */}
+      {/* Right Actions */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: isMobile ? 8 : 0 }}>
-        {/* Copy Prisma URL */}
-        <button
-          onClick={handleCopyPrismaUrl}
-          title="Copy Prisma Studio URL"
-          style={{
-            padding: "6px 8px",
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: isDarkMode ? "#111827" : "#eef2ff",
-            color: isDarkMode ? "#fff" : "#0f172a",
-            display: "flex",
-            gap: 6,
-            alignItems: "center",
-            fontSize: 13,
-          }}
-        >
-          <Copy size={14} />
-          {isCopied ? "Copied" : "Copy"}
-        </button>
+        {/* Prisma */}
+        {db.dbType !== "qdrant" && (
+          <>
+            <button onClick={handleCopyPrismaUrl} title="Copy Prisma URL" style={actionButtonStyle(isDarkMode ? "#111827" : "#eef2ff", isDarkMode ? "#fff" : "#0f172a")}>
+              <Copy size={14} /> {isCopiedPrisma ? "Copied" : "Copy"}
+            </button>
+            <button onClick={() => onOpenPrisma(db)} title="Open Prisma" style={actionButtonStyle(isDarkMode ? "#111827" : "#eef2ff", isDarkMode ? "#fff" : "#0f172a")}>
+              Open Prisma
+            </button>
+          </>
+        )}
+
+        {/* Qdrant */}
+        {db.dbType === "qdrant" && db.qdrantUrl && (
+          <>
+            <button onClick={handleCopyQdrantUrl} title="Copy Qdrant URL" style={actionButtonStyle(isDarkMode ? "#111827" : "#eef2ff", isDarkMode ? "#fff" : "#0f172a")}>
+              <Copy size={14} /> {isCopiedQdrant ? "Copied" : "Copy Qdrant"}
+            </button>
+            <button onClick={() => window.open(db.qdrantUrl, "_blank")} title="Open Qdrant" style={actionButtonStyle(isDarkMode ? "#111827" : "#eef2ff", isDarkMode ? "#fff" : "#0f172a")}>
+              Open Qdrant
+            </button>
+          </>
+        )}
 
         {/* Edit */}
         {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            title="Edit name"
-            style={{
-              padding: "6px 8px",
-              borderRadius: 8,
-              border: "none",
-              cursor: "pointer",
-              background: isDarkMode ? "#111827" : "#f3f4f6",
-              color: isDarkMode ? "#fff" : "#000",
-              display: "flex",
-              gap: 6,
-              alignItems: "center",
-              fontSize: 13,
-            }}
-          >
+          <button onClick={() => setIsEditing(true)} title="Edit name" style={actionButtonStyle(isDarkMode ? "#111827" : "#f3f4f6", isDarkMode ? "#fff" : "#000")}>
             <Edit size={14} /> Edit
           </button>
         )}
 
         {/* Delete */}
-        <button
-          onClick={() => onDelete(db._id)}
-          title="Delete DB"
-          style={{
-            padding: "6px 8px",
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: isDarkMode ? "#111827" : "#fdecea",
-            color: isDarkMode ? "#fff" : "#9b1c1c",
-            display: "flex",
-            gap: 6,
-            alignItems: "center",
-            fontSize: 13,
-          }}
-        >
+        <button onClick={() => onDelete(db._id)} title="Delete DB" style={actionButtonStyle(isDarkMode ? "#111827" : "#fdecea", isDarkMode ? "#fff" : "#9b1c1c")}>
           <Trash size={14} /> Delete
         </button>
       </div>
@@ -346,6 +306,7 @@ export default function ConnectedDatabase() {
   const [aiMessage, setAiMessage] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [loadingAdd, setLoadingAdd] = useState(false);
+  const [dbType, setDbType] = useState("");
   const navigate = useNavigate();
 
   const API_BASE = "http://localhost:5000/api/monitoring";
@@ -442,22 +403,41 @@ export default function ConnectedDatabase() {
 
   // ---------- Add Database ----------
   const handleAddDatabase = async () => {
-    if (!newDBName.trim()) {
-      alert("Please enter a database name.");
-      return;
-    }
     if (!newDBUrl?.trim()) {
-      alert("Please enter MongoDB URL.");
+      alert(`Please enter ${dbType === "qdrant" ? "Qdrant URL" : "Database URL"}`);
       return;
     }
-    if (!newPrismaPort || isNaN(Number(newPrismaPort))) {
-      alert("Please enter a valid Prisma port (e.g. 5555).");
+
+    // Validate URL for all non-Qdrant DBs
+    if (dbType !== "qdrant") {
+      try {
+        new URL(newDBUrl); // basic check
+      } catch {
+        alert("Please enter a valid Database URL (e.g., mongodb://localhost:27017)");
+        return;
+      }
+    }
+
+    // Validate Prisma port if applicable
+    if (dbType !== "qdrant" && (!newPrismaPort || isNaN(Number(newPrismaPort)))) {
+      alert("Please enter a valid Prisma port (e.g., 5555).");
       return;
+    }
+
+    // Validate Qdrant URL specifically
+    if (dbType === "qdrant") {
+      try {
+        new URL(newDBUrl); // throws if invalid
+      } catch {
+        alert("Please enter a valid Qdrant URL (e.g., http://localhost:6333).");
+        setLoadingAdd(false);
+        return;
+      }
     }
 
     setLoadingAdd(true);
 
-    // Upload file if selected
+    // Upload file if selected (Prisma / SQL)
     let schemaPathToSend = newSchemaPath || "";
     if (selectedFile) {
       setUploadMessage("Uploading file...");
@@ -475,8 +455,8 @@ export default function ConnectedDatabase() {
       }
     }
 
-    // If user didn't upload and didn't set schemaPath, still allow but warn
-    if (!schemaPathToSend) {
+    // Warn if schema path is missing for Prisma/SQL DB
+    if (dbType !== "qdrant" && !schemaPathToSend) {
       const proceed = window.confirm(
         "No schema path provided. Prisma Studio may not run without a valid schema. Continue?"
       );
@@ -488,14 +468,15 @@ export default function ConnectedDatabase() {
 
     try {
       // Get userId from localStorage (or your auth context)
-      const userId = localStorage.getItem("userId") || "dummyUserId"; // fallback if not logged in
+      const userId = localStorage.getItem("userId") || "dummyUserId";
 
       const payload = {
         name: newDBName,
-        mongoUrl: newDBUrl,
-        schemaPath: schemaPathToSend,
-        prismaPort: Number(newPrismaPort),
-        userId, // ⚠ Add userId here
+        dbType,
+        ...(dbType === "qdrant"
+          ? { qdrantUrl: newDBUrl }
+          : { url: newDBUrl, schemaPath: schemaPathToSend, prismaPort: Number(newPrismaPort) }),
+        userId,
       };
 
       const res = await fetch(`${API_BASE}/add`, {
@@ -506,17 +487,20 @@ export default function ConnectedDatabase() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        // push to state
+        // Add to state
         setDbList((prev) => [...prev, data.db]);
         setShowAddDB(false);
-        // clear form
+
+        // Reset all modal fields
+        setDbType("");
         setNewDBName("");
         setNewDBUrl("");
         setNewSchemaPath("");
         setNewPrismaPort("");
         setSelectedFile(null);
         setUploadMessage("");
-        // optional: open Prisma after add if backend started it
+
+        // Optionally open Prisma Studio
         if (data.db && data.db.prismaPort) {
           const openUrl = `http://localhost:${data.db.prismaPort}`;
           window.open(openUrl, "_blank");
@@ -532,7 +516,6 @@ export default function ConnectedDatabase() {
       setLoadingAdd(false);
     }
   };
-
 
   // ---------- Update database name ----------
   const handleUpdate = async (id, name) => {
@@ -743,7 +726,29 @@ export default function ConnectedDatabase() {
                 gap: 12,
               }}
             >
-              <h3 style={{ margin: 0, color: "#48a2ff" }}>Add New Database</h3>
+              <h3 style={{ margin: 0, color: "#48a2ff" }}>
+                Add {dbType === "qdrant" ? "Qdrant " : ""}Database
+              </h3>
+
+              <select
+                value={dbType}
+                onChange={(e) => setDbType(e.target.value)}
+                style={{
+                  padding: 10,
+                  borderRadius: 8,
+                  border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
+                  background: isDarkMode ? "#071025" : "#f9fafb",
+                  color: isDarkMode ? "#fff" : "#000",
+                }}
+              >
+                <option value="">Select Database Type</option>
+                <option value="sql">SQL</option>
+                <option value="qdrant">Qdrant</option> {/* NEW */}
+                <option value="mysql">MySQL</option>
+                <option value="postgresql">PostgreSQL</option>
+                <option value="mongodb">MongoDB</option>
+                <option value="sqlite">SQLite</option>
+              </select>
 
               <input
                 placeholder="Database Name"
@@ -759,7 +764,12 @@ export default function ConnectedDatabase() {
               />
 
               <input
-                placeholder="Database URL (e.g., mongodb://localhost:27017)"
+                type={dbType === "qdrant" ? "url" : "text"}
+                placeholder={
+                  dbType === "qdrant"
+                    ? "Qdrant URL (e.g., http://localhost:6333)"
+                    : "Database URL (e.g., mongodb://localhost:27017)"
+                }
                 value={newDBUrl}
                 onChange={(e) => setNewDBUrl(e.target.value)}
                 style={{
@@ -771,80 +781,82 @@ export default function ConnectedDatabase() {
                 }}
               />
 
-              {/* File upload / drag drop */}
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleFileSelect(file);
-                }}
-                onClick={() => {
-                  const input = document.getElementById("schemaFileInput");
-                  if (input) input.click();
-                }}
-                style={{
-                  border: `2px dashed ${isDarkMode ? "#2b2f3a" : "#cbd5e1"}`,
-                  borderRadius: 10,
-                  padding: "14px",
-                  textAlign: "center",
-                  color: isDarkMode ? "#cbd5e1" : "#475569",
-                  background: isDarkMode ? "#071025" : "#f9fafb",
-                  cursor: "pointer",
-                }}
-              >
-                <input
-                  type="file"
-                  id="schemaFileInput"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) handleFileSelect(file);
-                  }}
-                />
-                {selectedFile ? (
-                  <div>
-                    <strong>📄 {selectedFile.name}</strong>
-                    <div style={{ fontSize: 12, color: "#9ca3af" }}>{uploadMessage}</div>
+              {/* Hide Prisma-specific fields if DB is Qdrant */}
+              {dbType !== "qdrant" && (
+                <>
+                  {/* Prisma schema upload */}
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleFileSelect(file);
+                    }}
+                    onClick={() => document.getElementById("schemaFileInput")?.click()}
+                    style={{
+                      border: `2px dashed ${isDarkMode ? "#2b2f3a" : "#cbd5e1"}`,
+                      borderRadius: 10,
+                      padding: "14px",
+                      textAlign: "center",
+                      color: isDarkMode ? "#cbd5e1" : "#475569",
+                      background: isDarkMode ? "#071025" : "#f9fafb",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="file"
+                      id="schemaFileInput"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleFileSelect(file);
+                      }}
+                    />
+                    {selectedFile ? (
+                      <div>
+                        <strong>📄 {selectedFile.name}</strong>
+                        <div style={{ fontSize: 12, color: "#9ca3af" }}>{uploadMessage}</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p style={{ margin: 0 }}>Drag & drop your Prisma/schema file here</p>
+                        <p style={{ margin: 0 }}>
+                          or <span style={{ color: "#48a2ff" }}>browse</span>
+                        </p>
+                        <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 6 }}>
+                          (Optional) Uploaded schema will be used to run Prisma Studio.
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div>
-                    <p style={{ margin: 0 }}>Drag & drop your Prisma/schema file here</p>
-                    <p style={{ margin: 0 }}>
-                      or <span style={{ color: "#48a2ff" }}>browse</span>
-                    </p>
-                    <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 6 }}>
-                      (Optional) Uploaded schema will be used to run Prisma Studio.
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <input
-                placeholder="Or provide existing Prisma Schema Path (e.g., /uploads/schema.prisma)"
-                value={newSchemaPath}
-                onChange={(e) => setNewSchemaPath(e.target.value)}
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
-                  background: isDarkMode ? "#071025" : "#f9fafb",
-                  color: isDarkMode ? "#fff" : "#000",
-                }}
-              />
+                  <input
+                    placeholder="Or provide existing Prisma Schema Path (e.g., /uploads/schema.prisma)"
+                    value={newSchemaPath}
+                    onChange={(e) => setNewSchemaPath(e.target.value)}
+                    style={{
+                      padding: 10,
+                      borderRadius: 8,
+                      border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
+                      background: isDarkMode ? "#071025" : "#f9fafb",
+                      color: isDarkMode ? "#fff" : "#000",
+                    }}
+                  />
 
-              <input
-                placeholder="Prisma Studio Port (e.g., 5555)"
-                value={newPrismaPort}
-                onChange={(e) => setNewPrismaPort(e.target.value)}
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
-                  background: isDarkMode ? "#071025" : "#f9fafb",
-                  color: isDarkMode ? "#fff" : "#000",
-                }}
-              />
+                  <input
+                    placeholder="Prisma Studio Port (e.g., 5555)"
+                    value={newPrismaPort}
+                    onChange={(e) => setNewPrismaPort(e.target.value)}
+                    style={{
+                      padding: 10,
+                      borderRadius: 8,
+                      border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
+                      background: isDarkMode ? "#071025" : "#f9fafb",
+                      color: isDarkMode ? "#fff" : "#000",
+                    }}
+                  />
+                </>
+              )}
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <button
@@ -903,41 +915,45 @@ export default function ConnectedDatabase() {
         </div>
 
         {/* Live Metrics */}
-        <div
-          style={{
-            width: "100%",
-            minHeight: 60,
-            background: isDarkMode ? "#0b1220" : "#f9fafb",
-            borderRadius: 12,
-            border: `1px solid ${isDarkMode ? "#ffffffff" : "#e6e6e6"}`,
-            padding: 12,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4 style={{ margin: 0, fontSize: 13 }}>Database Monitoring (Live)</h4>
-            <div style={{ fontSize: 12, color: "#9ca3af" }}>
-              auto-refresh every 30s · last metrics shown for first DB
-            </div>
-          </div>
+        {dbList[0]?.dbType !== "qdrant" &&
+          (
+            <div
+              style={{
+                width: "100%",
+                minHeight: 60,
+                background: isDarkMode ? "#0b1220" : "#f9fafb",
+                borderRadius: 12,
+                border: `1px solid ${isDarkMode ? "#ffffffff" : "#e6e6e6"}`,
+                padding: 12,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h4 style={{ margin: 0, fontSize: 13 }}>Database Monitoring (Live)</h4>
+                <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                  auto-refresh every 30s · last metrics shown for first DB
+                </div>
+              </div>
 
-          <div style={{ marginTop: 8 }}>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={metricsData}>
-                <CartesianGrid stroke={isDarkMode ? "#1f2937" : "#e6e6e6"} strokeDasharray="3 3" />
-                <XAxis dataKey="time" stroke={isDarkMode ? "#9ca3af" : "#333"} fontSize={10} />
-                <YAxis stroke={isDarkMode ? "#9ca3af" : "#333"} fontSize={10} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDarkMode ? "#111827" : "#fff",
-                    border: "none",
-                    fontSize: 12,
-                  }}
-                />
-                <Line type="monotone" dataKey="response" stroke="#48a2ff" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+              <div style={{ marginTop: 8 }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={metricsData}>
+                    <CartesianGrid stroke={isDarkMode ? "#1f2937" : "#e6e6e6"} strokeDasharray="3 3" />
+                    <XAxis dataKey="time" stroke={isDarkMode ? "#9ca3af" : "#333"} fontSize={10} />
+                    <YAxis stroke={isDarkMode ? "#9ca3af" : "#333"} fontSize={10} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: isDarkMode ? "#111827" : "#fff",
+                        border: "none",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Line type="monotone" dataKey="response" stroke="#48a2ff" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )
+        }
 
         {/* Connection Info + Upload Message */}
         <div
