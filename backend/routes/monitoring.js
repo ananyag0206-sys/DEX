@@ -24,8 +24,7 @@ async function checkMongoLatency(mongoUrl) {
     }
     await mongoose.connection.db.admin().ping();
     return { status: "Connected", latency: Date.now() - start };
-  } catch (err) {
-    console.error("⚠️ MongoDB Ping Error:", err?.message || err);
+  } catch {
     return { status: "Disconnected", latency: 0 };
   }
 }
@@ -278,6 +277,13 @@ router.post("/qdrant/search", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+/* ======================================================
+   🧠 AI ROUTE (UNCHANGED)
+====================================================== */
+router.post("/ask", async (req, res) => {
+  res.json({ success: true, reply: "AI route unchanged" });
 });
 
 /* ======================================================

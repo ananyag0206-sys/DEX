@@ -4,39 +4,51 @@ const monitoringSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
 
-    // ✅ Database type: mongo | sql | qdrant
+    // Database type
     dbType: {
       type: String,
       enum: ["mongo", "sql", "qdrant"],
       required: true,
     },
 
-    // ✅ Connection URL
-    // - Mongo → mongodb://...
-    // - SQL   → handled by Prisma
-    // - Qdrant → http://qdrant:6333
-    mongoUrl: { type: String, default: null },  // optional for SQL/Qdrant
-    qdrantUrl: { type: String, default: null }, // <-- added Qdrant URL
+    // Mongo URL (required only if dbType = mongo)
+    mongoUrl: {
+      type: String,
+      required: function () {
+        return this.dbType === "mongo";
+      },
+    },
 
-    // ✅ Prisma-specific (optional for Qdrant)
-    schemaPath: { type: String, default: null },
-    prismaPort: { type: Number, default: null },
+    // Qdrant URL (for Qdrant databases)
+    qdrantUrl: { type: String, default: null },
+
+    // Prisma-related (for SQL)
+    schemaPath: {
+      type: String,
+      default: null,
+    },
+    prismaPort: {
+      type: Number,
+      default: null,
+    },
 
     userId: { type: String, required: true },
 
-    // ✅ Monitoring fields
+    // Monitoring fields
     status1: { type: String, default: "Unknown" },
     status2: { type: String, default: "Unknown" },
     latency: { type: Number, default: 0 },
+
+    // ✅ Use Date instead of String
     lastUpdate: {
-      type: String,
-      default: () => new Date().toLocaleTimeString(),
+      type: Date,
+      default: Date.now,
     },
 
     analytics: [
       {
-        time: String,
-        response: Number,
+        time: { type: Date, default: Date.now },
+        response: { type: Number, default: 0 },
       },
     ],
   },
@@ -45,5 +57,9 @@ const monitoringSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.models.Monitoring ||
+// Prevent model overwrite error
+const Monitoring =
+  mongoose.models.Monitoring ||
   mongoose.model("Monitoring", monitoringSchema);
+
+export default Monitoring;

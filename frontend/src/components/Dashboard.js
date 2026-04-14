@@ -26,7 +26,7 @@ function Dashboard() {
 
     // ✅ Function to handle navigation
     const handleConnectDatabase = () => {
-        navigate("/databases");
+        navigate("/connecteddatabase");
     };
 
     // Sample data for chart

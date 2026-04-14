@@ -10,7 +10,6 @@ import SideBar from "./components/SideBar";
 import Signup from "./components/Signup";
 import { ThemeProvider } from "./components/ThemeContext";
 import QueryEditor from "./components/QueryEditor";
-// import Dashboard from "./components/Dashboard";
 import AccountResetPage from "./components/AccountResetPage"; // ✅ Added back
 
 function App() {
@@ -27,7 +26,6 @@ function App() {
           <Route path="/AIinsights" element={<AI />} />
           <Route path="/NewChat" element={<Chat />} />
           <Route path="/queryeditor" element={<QueryEditor />} />
-          {/* <Route path="/databases" element={<Dashboard />} /> */}
 
           {/* Account Settings & Password Reset */}
           <Route path="/account-settings" element={<AccountSettings />} />

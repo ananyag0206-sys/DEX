@@ -1,6 +1,5 @@
-// ConnectedDatabase.js
 import React, { useState, useEffect, useContext } from "react";
-import { Edit, Trash, Plus, Link as LinkIcon, ExternalLink, Copy } from "lucide-react";
+import { Edit, Trash, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "./SideBar";
 import {
@@ -14,46 +13,18 @@ import {
 } from "recharts";
 import { ThemeContext } from "./ThemeContext";
 
-/**
- * Full ConnectedDatabase component
- *
- * Features:
- * - Fetch databases from backend
- * - Add database (name, mongoUrl, schema upload, prismaPort)
- * - Upload schema file to backend
- * - Open Prisma Studio via /open/:id
- * - Open schema file via static /uploads link
- * - Edit name inline
- * - Delete database
- * - Live metrics chart (first DB)
- * - Ollama chat (AI assistant)
- *
- * Backend endpoints assumed:
- * - GET  /api/monitoring/all
- * - POST /api/monitoring/add
- * - POST /api/monitoring/upload-schema
- * - DELETE /api/monitoring/delete/:id
- * - PUT /api/monitoring/update/:id
- * - GET  /api/monitoring/open/:id
- *
- * Ollama chat:
- * - POST /api/chat  -> { message }  returns { reply }
- */
-
-// small StatusIndicator component (keeps previous inline style)
+// ✅ StatusIndicator
 function StatusIndicator({ status }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        marginRight: 6,
-        backgroundColor: status === "Connected" ? "#22c55e" : "#ef4444",
-      }}
-    />
-  );
+  return React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      marginRight: "6px",
+      backgroundColor: status === "Connected" ? "#22c55e" : "#ef4444",
+    },
+  });
 }
 
 /**
@@ -130,13 +101,13 @@ function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPris
       style={{
         background: isDarkMode ? "rgb(11, 18, 32)" : "#f9f9f9",
         borderRadius: 12,
-        padding: 7.5,
+        padding: 8,
         marginBottom: 8,
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
         justifyContent: "space-between",
         alignItems: isMobile ? "flex-start" : "center",
-        border: `1px solid ${isDarkMode ? "#ffffffff" : "#00000011"}`,
+        border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
         color: isDarkMode ? "#fff" : "#000",
         cursor: "default",
       }}
@@ -311,9 +282,7 @@ function DatabaseCard({ db, isMobile, isDarkMode, onUpdate, onDelete, onOpenPris
   );
 }
 
-/**
- * Main component
- */
+// ✅ Main Component
 export default function ConnectedDatabase() {
   const { isDarkMode } = useContext(ThemeContext);
   const [dbList, setDbList] = useState([]);
@@ -323,11 +292,6 @@ export default function ConnectedDatabase() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDB, setShowAddDB] = useState(false);
   const [newDBName, setNewDBName] = useState("");
-  const [newDBUrl, setNewDBUrl] = useState("");
-  const [newSchemaPath, setNewSchemaPath] = useState("");
-  const [newPrismaPort, setNewPrismaPort] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [uploadMessage, setUploadMessage] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [aiMessage, setAiMessage] = useState("");
   const [aiResponse, setAiResponse] = useState("");
@@ -335,54 +299,7 @@ export default function ConnectedDatabase() {
   const [dbType, setDbType] = useState("");
   const navigate = useNavigate();
 
-  const API_BASE = "http://localhost:5000/api/monitoring";
-  const AI_API = "http://localhost:5000/api/chat";
-
-  // ---------- Helper: file selection ----------
-  const handleFileSelect = (file) => {
-    if (!file) return;
-    setSelectedFile(file);
-    setUploadMessage(`Selected file: ${file.name}`);
-    setNewSchemaPath(""); // we'll prefer uploaded file path
-  };
-
-  // ---------- Upload selected file ----------
-  // backend route: POST /api/monitoring/upload-schema
-  const uploadSelectedFile = async () => {
-    if (!selectedFile) return { success: false, message: "No file selected" };
-
-    try {
-      const fd = new FormData();
-      fd.append("file", selectedFile);
-
-      const res = await fetch(`${API_BASE}/upload-schema`, {
-        method: "POST",
-        body: fd,
-      });
-
-      // try parse json
-      const text = await res.text();
-      let data = {};
-      try {
-        data = JSON.parse(text);
-      } catch {
-        // not json
-        return { success: false, message: "Server returned non-JSON response" };
-      }
-
-      if (res.ok && data.success) {
-        setUploadMessage("✅ File uploaded successfully");
-        return { success: true, path: data.path || data.file?.path || "" };
-      } else {
-        return { success: false, message: data.message || "Upload failed" };
-      }
-    } catch (err) {
-      console.error("Upload error:", err);
-      return { success: false, message: err.message || "Upload failed" };
-    }
-  };
-
-  // ---------- Fetch all databases ----------
+  // ✅ Fetch all databases
   const fetchDatabases = async () => {
     try {
       const res = await fetch(`${API_BASE}/all`);
@@ -407,27 +324,20 @@ export default function ConnectedDatabase() {
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      setDbList([]);
-      setMetricsData([]);
+      setDbList([]); // fallback safe
     }
   };
 
-  // fetch on mount and every 30s
+
+  // ✅ Initial fetch + resize listener
   useEffect(() => {
     fetchDatabases();
-    const interval = setInterval(fetchDatabases, 30000);
-
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("resize", handleResize);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ---------- Add Database ----------
+  // ✅ Add database
   const handleAddDatabase = async () => {
     if (!newDBUrl?.trim()) {
       alert(`Please enter ${dbType === "qdrant" ? "Qdrant URL" : "Database URL"}`);
@@ -508,9 +418,8 @@ export default function ConnectedDatabase() {
       const res = await fetch(`${API_BASE}/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ name: newDBName }),
       });
-
       const data = await res.json();
       if (res.ok && data.success) {
         // Add to state
@@ -532,14 +441,11 @@ export default function ConnectedDatabase() {
           window.open(openUrl, "_blank");
         }
       } else {
-        console.error("Add DB failed:", data);
-        alert(`Add DB failed: ${data.error || data.message || "unknown error"}`);
+        alert("Failed to add database.");
       }
     } catch (err) {
-      console.error("Add DB request error:", err);
-      alert("Error adding database. Check backend.");
-    } finally {
-      setLoadingAdd(false);
+      console.error("Add DB error:", err);
+      alert("Error adding database. Check backend connection.");
     }
   };
 
@@ -569,52 +475,26 @@ export default function ConnectedDatabase() {
   };
 
 
-  // ---------- Delete ----------
+  // ✅ Delete database
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this database?")) return;
     try {
-      const res = await fetch(`${API_BASE}/delete/${id}`, { method: "DELETE" });
+      const res = await fetch(`http://localhost:5000/api/monitoring/delete/${id}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
       if (res.ok && data.success) {
-        setDbList((prev) => prev.filter((d) => d._id !== id));
+        setDbList((prev) => prev.filter((db) => db._id !== id));
       } else {
-        console.error("Delete failed:", data);
-        alert("Delete failed");
+        alert("Failed to delete database.");
       }
     } catch (err) {
-      console.error("Delete error:", err);
-      alert("Delete error");
+      console.error("Delete DB error:", err);
+      alert("Error deleting database. Check backend connection.");
     }
   };
 
-  // ---------- Open Prisma Studio ----------
-  // Calls backend GET /open/:id which returns prismaUrl
-  const handleOpenPrisma = async (db) => {
-    if (!db._id) return;
-    try {
-      // if db.prismaPort exists locally, attempt direct open first (fast)
-      if (db.prismaPort) {
-        const url = `http://localhost:${db.prismaPort}`;
-        // open in new tab
-        window.open(url, "_blank");
-        return;
-      }
-
-      // otherwise ask backend for the URL
-      const res = await fetch(`${API_BASE}/open/${db._id}`);
-      const data = await res.json();
-      if (res.ok && data.success && data.prismaUrl) {
-        window.open(data.prismaUrl, "_blank");
-      } else {
-        alert("Prisma URL not available for this database.");
-      }
-    } catch (err) {
-      console.error("Open Prisma error:", err);
-      alert("Failed to open Prisma Studio. Is it running?");
-    }
-  };
-
-  // ---------- Filter logic ----------
+  // ✅ Filtered list
   const filteredDbList = dbList.filter((db) => {
     const matchesSearch = db.name?.toLowerCase().includes(searchQuery.toLowerCase());
     if (selectedFilter === "Connected")
@@ -624,7 +504,6 @@ export default function ConnectedDatabase() {
     return matchesSearch;
   });
 
-  // ---------- UI ----------
   return (
     <SideBar isMobile={isMobile}>
       <div
@@ -638,7 +517,9 @@ export default function ConnectedDatabase() {
           background: isDarkMode ? "rgba(10,12,18,0.6)" : "rgba(255,255,255,0.4)",
         }}
       >
-        <h2 style={{ color: isDarkMode ? "#48a2ff" : "#0259b1", margin: 0 }}>Connected Databases</h2>
+        <h2 style={{ color: isDarkMode ? "#48a2ff" : "#0259b1", margin: 0 }}>
+          Connected Databases
+        </h2>
 
         {/* Search bar */}
         <input
@@ -647,9 +528,9 @@ export default function ConnectedDatabase() {
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
             width: "100%",
-            padding: 10,
-            borderRadius: 10,
-            border: `1px solid ${isDarkMode ? "#ffffffff" : "#00000022"}`,
+            padding: 8,
+            borderRadius: 8,
+            border: "none",
             outline: "none",
             background: isDarkMode ? "#0b1220" : "#f3f4f6",
             color: isDarkMode ? "#fff" : "#000",
@@ -657,11 +538,11 @@ export default function ConnectedDatabase() {
         />
 
         {/* Filter + Add buttons */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div style={{ position: "relative" }}>
             <button
               style={{
-                background: isDarkMode ? "#0b1220" : "#fff",
+                background: isDarkMode ? "#0b1220" : "#f3f4f6",
                 color: isDarkMode ? "#fff" : "#000",
                 border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
                 padding: "8px 12px",
@@ -672,7 +553,6 @@ export default function ConnectedDatabase() {
             >
               {selectedFilter} ▼
             </button>
-
             {filterOpen && (
               <div
                 style={{
@@ -746,7 +626,7 @@ export default function ConnectedDatabase() {
                 background: isDarkMode ? "#0b1220" : "#fff",
                 padding: 20,
                 borderRadius: 12,
-                width: isMobile ? "92%" : 520,
+                width: isMobile ? "92%" : 420,
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
@@ -886,11 +766,7 @@ export default function ConnectedDatabase() {
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <button
-                  onClick={() => {
-                    setShowAddDB(false);
-                    setSelectedFile(null);
-                    setUploadMessage("");
-                  }}
+                  onClick={() => setShowAddDB(false)}
                   style={{
                     padding: "8px 12px",
                     borderRadius: 8,
@@ -910,9 +786,8 @@ export default function ConnectedDatabase() {
                     color: "#fff",
                     border: "none",
                   }}
-                  disabled={loadingAdd}
                 >
-                  {loadingAdd ? "Adding..." : "Add"}
+                  Add
                 </button>
               </div>
             </div>
@@ -920,24 +795,17 @@ export default function ConnectedDatabase() {
         )}
 
         {/* Database Cards */}
-        <div style={{ flex: 1, overflowY: "auto", maxHeight: "40vh", paddingTop: 6 }}>
-          {filteredDbList.length === 0 ? (
-            <div style={{ padding: 12, color: isDarkMode ? "#94a3b8" : "#475569" }}>
-              No databases. Click Add Database to create one.
-            </div>
-          ) : (
-            filteredDbList.map((db) => (
-              <DatabaseCard
-                key={db._id}
-                db={db}
-                isMobile={isMobile}
-                isDarkMode={isDarkMode}
-                onUpdate={handleUpdate}
-                onDelete={handleDelete}
-                onOpenPrisma={handleOpenPrisma}
-              />
-            ))
-          )}
+        <div style={{ flex: 1, overflowY: "auto", maxHeight: "40vh", paddingTop: 4 }}>
+          {filteredDbList.map((db) => (
+            <DatabaseCard
+              key={db._id}
+              db={db}
+              isMobile={isMobile}
+              isDarkMode={isDarkMode}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
 
         {/* Live Metrics */}
@@ -981,31 +849,24 @@ export default function ConnectedDatabase() {
           )
         }
 
-        {/* Connection Info + Upload Message */}
+        {/* Connection Info */}
         <div
           style={{
             width: "100%",
-            minHeight: 48,
+            minHeight: 40,
             background: isDarkMode ? "#0b1220" : "#fff",
             borderRadius: 12,
-            padding: 12,
+            padding: 10,
             color: isDarkMode ? "#cbd5e1" : "#111827",
-            border: `1px solid ${isDarkMode ? "#ffffffff" : "#e6e6e6"}`,
+            border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
             fontSize: 12,
-            marginTop: 6,
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
           }}
         >
           <div style={{ fontWeight: 600 }}>Connection Health</div>
-          <div style={{ fontSize: 12 }}>
+          <div style={{ marginTop: 4, fontSize: 12 }}>
             Monitoring live metrics from MongoDB serverStatus (or simulated if unavailable).
           </div>
-          {uploadMessage && <div style={{ marginTop: 6, fontSize: 12, color: "#9ca3af" }}>{uploadMessage}</div>}
         </div>
-
-
       </div>
     </SideBar>
   );

@@ -138,12 +138,11 @@ export default function Login() {
     };
 
     const handleGitHubLogin = async () => {
-        // const { error } = await supabase.auth.signInWithOAuth({
-        //     provider: "github",
-        //     options: { redirectTo: window.location.origin + "/connecteddatabase" },
-        // });
-        // if (error) setError(error.message);
-        alert("Its comming soon!!")
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "github",
+            options: { redirectTo: window.location.origin + "/connecteddatabase" },
+        });
+        if (error) setError(error.message);
     };
 
     // 🎨 Styles
