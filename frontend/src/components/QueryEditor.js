@@ -161,22 +161,6 @@ INSERT INTO Employees VALUES
     setQueryText(t.sql);
   };
 
-  const deleteTemplate = async (t) => {
-    if (!window.confirm("Delete template " + t.name + "?")) return;
-
-    const { error } = await supabase
-      .from("query_templates")
-      .delete()
-      .eq("id", t.id);
-
-    if (error) {
-      alert("Error deleting template: " + error.message);
-    } else {
-      setTemplates((prev) => prev.filter((x) => x.id !== t.id));
-      if (selectedTemplate === t.id) setSelectedTemplate(null);
-    }
-  };
-
   const exportCSV = () => {
     if (!results || results.length === 0) {
       alert("No results to export");
@@ -252,6 +236,9 @@ INSERT INTO Employees VALUES
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ fontWeight: 700, color: "#cce4ff" }}>≡ Query Template</div>
+            {loadingTemplates && (
+              <span style={{ fontSize: 12, color: "#94a3b8" }}>Loading…</span>
+            )}
             <select
               value={selectedTemplate || ""}
               onChange={(e) => {

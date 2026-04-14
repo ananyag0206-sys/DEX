@@ -4,9 +4,10 @@ import bodyParser from "body-parser";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import path from "path";
 import connectDB from "./config/db.js";
 import monitoringRoutes from "./routes/monitoring.js";
-import Monitoring from "./models/Monitoring.js";
+import Monitoring from "./models/modelsMonitoring.js";
 
 dotenv.config();
 
@@ -21,11 +22,14 @@ app.use(bodyParser.json());
 // Connect MongoDB
 connectDB();
 
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 // Root Route
 app.get("/", (req, res) => {
   res.send("💙 DEX Backend Active: AI + MongoDB Monitoring Running!");
 });
 
+// Static /qdrantdb route removed in favor of dynamic /api/monitoring/all
 // ======================================================
 // 💬 Ollama Chat API
 // ======================================================
@@ -67,11 +71,25 @@ console.log("✅ Monitoring routes registered at /api/monitoring");
 // ======================================================
 async function checkMongoLatency(mongoUri) {
   const start = Date.now();
+  const uri = (mongoUri && String(mongoUri).trim()) || process.env.MONGO_URI;
+  if (!uri) return { status: "Disconnected", latency: 0 };
+  let conn;
   try {
-    await mongoose.connection.db.admin().ping();
-    return { status: "Connected", latency: Date.now() - start };
+    conn = mongoose.createConnection(uri);
+    await conn.asPromise();
+    await conn.db.admin().ping();
+    const latency = Date.now() - start;
+    await conn.close();
+    return { status: "Connected", latency };
   } catch (err) {
     console.error("⚠️ MongoDB Ping Error:", err?.message || err);
+    if (conn) {
+      try {
+        await conn.close();
+      } catch (_) {
+        /* ignore */
+      }
+    }
     return { status: "Disconnected", latency: 0 };
   }
 }
@@ -93,8 +111,7 @@ async function autoRefresh() {
         latency = r.latency;
       }
 
-      if (db.dbType === "sql") {
-        console.warn("⚠️ SQL latency currently uses Mongo latency as placeholder");
+      if (db.dbType === "sql" && db.mongoUrl) {
         const r = await checkMongoLatency(db.mongoUrl);
         status = r.status;
         latency = r.latency;
@@ -103,7 +120,7 @@ async function autoRefresh() {
       if (db.dbType === "qdrant") {
         try {
           const start = Date.now();
-          await fetch(`${db.qdrantUrl || "http://qdrant:6333"}/collections`);
+          await fetch(`${db.qdrantUrl || "http://localhost:6333"}/collections`);
           status = "Connected";
           latency = Date.now() - start;
         } catch (err) {
@@ -116,10 +133,10 @@ async function autoRefresh() {
       db.status1 = status;
       db.status2 = status;
       db.latency = latency;
-      db.lastUpdate = new Date().toLocaleTimeString();
+      db.lastUpdate = new Date();
 
       db.analytics.push({
-        time: new Date().toLocaleTimeString(),
+        time: new Date(),
         response: latency,
       });
 
@@ -143,10 +160,10 @@ app.listen(PORT, async () => {
   console.log(`✅ Server running → http://localhost:${PORT}`);
 
   // Optional: Initialize default Qdrant collection
-  try {
-    await createCollection("default_collection", "http://qdrant:6333");
-    console.log("🔹 Qdrant default collection initialized");
-  } catch (err) {
-    console.error("❌ Failed to create default Qdrant collection:", err.message);
-  }
+  // try {
+  //   await createCollection("default_collection", "http://qdrant:6333");
+  //   console.log("🔹 Qdrant default collection initialized");
+  // } catch (err) {
+  //   console.error("❌ Failed to create default Qdrant collection:", err.message);
+  // }
 });

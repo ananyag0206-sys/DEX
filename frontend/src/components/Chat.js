@@ -4,7 +4,6 @@ import {
     Send,
     Plus,
     Copy,
-    Search,
     MessageSquare,
     Settings,
     Check,
@@ -28,12 +27,11 @@ export default function Chat() {
     const [showMenu, setShowMenu] = useState(false);
     const [isThinking, setIsThinking] = useState(false);
     const [copiedCode, setCopiedCode] = useState(null);
-    const [showSearch, setShowSearch] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const navigate = useNavigate();
     const chatEndRef = useRef(null);
     const typingCancelRef = useRef({ cancelled: false });
+    const chatApiUrl = `${process.env.REACT_APP_API_BASE || "http://localhost:5000"}/api/chat`;
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -85,7 +83,7 @@ export default function Chat() {
         setMessages((prev) => [...prev, { sender: "bot", text: "..." }]);
 
         try {
-            const res = await axios.post("http://localhost:5000/api/chat", { message: input });
+            const res = await axios.post(chatApiUrl, { message: input });
             simulateTypingCharByChar(res.data.reply || "🤖 Sorry, I didn’t understand that.");
         } catch (err) {
             console.error(err);
@@ -114,26 +112,6 @@ export default function Chat() {
         setIsGenerating(false);
         setMessages([{ sender: "bot", text: "🆕 New chat started! How can I help?" }]);
         setShowMenu(false);
-    };
-
-    const handleDeepSearch = async () => {
-        if (!searchQuery.trim()) return;
-        setMessages((prev) => [...prev, { sender: "user", text: `🔍 Deep search: ${searchQuery}` }]);
-        setShowSearch(false);
-        setIsThinking(true);
-        setMessages((prev) => [...prev, { sender: "bot", text: "Searching..." }]);
-
-        try {
-            const res = await axios.post("http://localhost:5000/api/chat", {
-                message: `Deep search: ${searchQuery}`,
-            });
-            simulateTypingCharByChar(res.data.reply || "No results found.");
-        } catch (err) {
-            setMessages((prev) => [
-                ...prev.slice(0, -1),
-                { sender: "bot", text: "❌ Deep search failed." },
-            ]);
-        }
     };
 
     const styles = {
@@ -397,9 +375,6 @@ export default function Chat() {
                         >
                             <button onClick={handleNewChat}>
                                 <MessageSquare size={16} /> New Chat
-                            </button>
-                            <button onClick={() => setShowSearch(true)}>
-                                <Search size={16} /> Deep Search
                             </button>
                             <button>
                                 <Settings size={16} /> Settings

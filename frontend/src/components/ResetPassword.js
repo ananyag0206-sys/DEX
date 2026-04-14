@@ -31,7 +31,7 @@ export default function ResetPassword() {
         if (error) setMessage(error.message);
         else {
             setMessage("Password updated successfully!");
-            setTimeout(() => navigate("/login"), 2000);
+            setTimeout(() => navigate("/"), 2000);
         }
     };
 

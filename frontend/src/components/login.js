@@ -24,6 +24,9 @@ export default function Login() {
                 data: { session },
             } = await supabase.auth.getSession();
 
+            if (session?.user?.id) {
+                localStorage.setItem("userId", session.user.id);
+            }
             if (session) navigate("/connecteddatabase");
         };
 
@@ -31,6 +34,11 @@ export default function Login() {
 
         const { data: subscription } = supabase.auth.onAuthStateChange(
             (_event, session) => {
+                if (session?.user?.id) {
+                    localStorage.setItem("userId", session.user.id);
+                } else {
+                    localStorage.removeItem("userId");
+                }
                 if (session) navigate("/connecteddatabase");
             }
         );
@@ -92,6 +100,10 @@ export default function Login() {
                 localStorage.setItem("supabase_session", JSON.stringify(data.session));
             } else {
                 sessionStorage.setItem("supabase_session", JSON.stringify(data.session));
+            }
+
+            if (data.user?.id) {
+                localStorage.setItem("userId", data.user.id);
             }
 
             navigate("/connecteddatabase");

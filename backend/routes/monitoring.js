@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
 import fetch from "node-fetch";
-import { createCollection, insertVector, searchVector } from "../config/qdrant.js"; // updated import
+// import { createCollection, insertVector, searchVector } from "../config/qdrant.js"; // updated import
 
 const router = express.Router();
 
@@ -15,16 +15,24 @@ const router = express.Router();
 ====================================================== */
 async function checkMongoLatency(mongoUrl) {
   const start = Date.now();
+  const uri = (mongoUrl && String(mongoUrl).trim()) || process.env.MONGO_URI;
+  if (!uri) return { status: "Disconnected", latency: 0 };
+  let conn;
   try {
-    if (!mongoose.connection.readyState) {
-      await mongoose.connect(mongoUrl || process.env.MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-    }
-    await mongoose.connection.db.admin().ping();
-    return { status: "Connected", latency: Date.now() - start };
+    conn = mongoose.createConnection(uri);
+    await conn.asPromise();
+    await conn.db.admin().ping();
+    const latency = Date.now() - start;
+    await conn.close();
+    return { status: "Connected", latency };
   } catch {
+    if (conn) {
+      try {
+        await conn.close();
+      } catch (_) {
+        /* ignore */
+      }
+    }
     return { status: "Disconnected", latency: 0 };
   }
 }
@@ -120,9 +128,11 @@ router.post("/add", async (req, res) => {
     // SQL / Prisma
     if (dbType === "sql") {
       assignedPort = prismaPort && Number(prismaPort) ? Number(prismaPort) : await getNextPrismaPort();
-      // ⚠ Placeholder: implement real SQL/Prisma latency later
-      status = "Unknown";
-      latency = 0;
+      if (mongoUrl) {
+        const r = await checkMongoLatency(mongoUrl);
+        status = r.status;
+        latency = r.latency;
+      }
 
       if (schemaPath) {
         exec(`npx prisma studio --port ${assignedPort}`, (err, stdout, stderr) => {
@@ -133,14 +143,10 @@ router.post("/add", async (req, res) => {
       }
     }
 
-    // Qdrant
     if (dbType === "qdrant") {
       const r = await checkQdrantLatency(qdrantUrl);
       status = r.status;
       latency = r.latency;
-
-      // Create default collection for this Qdrant DB
-      await createCollection(`${name}_default`, qdrantUrl);
     }
 
     const newDB = await Monitoring.create({
@@ -154,8 +160,8 @@ router.post("/add", async (req, res) => {
       status1: status,
       status2: status,
       latency,
-      lastUpdate: new Date().toLocaleTimeString(),
-      analytics: [{ time: new Date().toLocaleTimeString(), response: latency }],
+      lastUpdate: new Date(),
+      analytics: [{ time: new Date(), response: latency }],
     });
 
     res.json({ success: true, db: newDB });
@@ -220,9 +226,8 @@ router.get("/metrics", async (req, res) => {
       r = await checkMongoLatency(db.mongoUrl);
     }
 
-    // SQL placeholder
-    if (db.dbType === "sql") {
-      r = { status: "Unknown", latency: 0 }; // update later with real SQL/Prisma ping
+    if (db.dbType === "sql" && db.mongoUrl) {
+      r = await checkMongoLatency(db.mongoUrl);
     }
 
     if (db.dbType === "qdrant") {
@@ -230,8 +235,8 @@ router.get("/metrics", async (req, res) => {
     }
 
     await Monitoring.findByIdAndUpdate(db._id, {
-      $push: { analytics: { time: new Date().toLocaleTimeString(), response: r.latency } },
-      $set: { status1: r.status, status2: r.status, latency: r.latency, lastUpdate: new Date().toLocaleTimeString() },
+      $push: { analytics: { time: new Date(), response: r.latency } },
+      $set: { status1: r.status, status2: r.status, latency: r.latency, lastUpdate: new Date() },
     });
   }
 
@@ -241,54 +246,44 @@ router.get("/metrics", async (req, res) => {
 /* ======================================================
    🔹 Qdrant Routes: Insert / Search with validation
 ====================================================== */
-router.post("/qdrant/insert", async (req, res) => {
-  const { dbName, vector, payload } = req.body;
-  if (!dbName || !vector) return res.status(400).json({ error: "dbName and vector required" });
+// router.post("/qdrant/insert", async (req, res) => {
+//   const { dbName, vector, payload } = req.body;
+//   if (!dbName || !vector) return res.status(400).json({ error: "dbName and vector required" });
 
-  if (!Array.isArray(vector) || !vector.every((v) => typeof v === "number"))
-    return res.status(400).json({ error: "Vector must be an array of numbers" });
+//   if (!Array.isArray(vector) || !vector.every((v) => typeof v === "number"))
+//     return res.status(400).json({ error: "Vector must be an array of numbers" });
 
-  try {
-    const db = await Monitoring.findOne({ name: dbName, dbType: "qdrant" });
-    if (!db || !db.qdrantUrl) return res.status(404).json({ error: "Qdrant DB not found" });
+//   try {
+//     const db = await Monitoring.findOne({ name: dbName, dbType: "qdrant" });
+//     if (!db || !db.qdrantUrl) return res.status(404).json({ error: "Qdrant DB not found" });
 
-    await createCollection(`${dbName}_default`, db.qdrantUrl);
-    await insertVector(`${dbName}_default`, vector, payload || {}, db.qdrantUrl);
+//     await createCollection(`${dbName}_default`, db.qdrantUrl);
+//     await insertVector(`${dbName}_default`, vector, payload || {}, db.qdrantUrl);
 
-    res.json({ success: true, message: "Vector inserted into Qdrant" });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+//     res.json({ success: true, message: "Vector inserted into Qdrant" });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// });
 
-router.post("/qdrant/search", async (req, res) => {
-  const { dbName, vector, limit } = req.body;
-  if (!dbName || !vector) return res.status(400).json({ error: "dbName and vector required" });
+// router.post("/qdrant/search", async (req, res) => {
+//   const { dbName, vector, limit } = req.body;
+//   if (!dbName || !vector) return res.status(400).json({ error: "dbName and vector required" });
 
-  if (!Array.isArray(vector) || !vector.every((v) => typeof v === "number"))
-    return res.status(400).json({ error: "Vector must be an array of numbers" });
+//   if (!Array.isArray(vector) || !vector.every((v) => typeof v === "number"))
+//     return res.status(400).json({ error: "Vector must be an array of numbers" });
 
-  try {
-    const db = await Monitoring.findOne({ name: dbName, dbType: "qdrant" });
-    if (!db || !db.qdrantUrl) return res.status(404).json({ error: "Qdrant DB not found" });
+//   try {
+//     const db = await Monitoring.findOne({ name: dbName, dbType: "qdrant" });
+//     if (!db || !db.qdrantUrl) return res.status(404).json({ error: "Qdrant DB not found" });
 
-    const results = await searchVector(`${dbName}_default`, vector, limit || 5, db.qdrantUrl);
-    res.json({ success: true, results });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+//     const results = await searchVector(`${dbName}_default`, vector, limit || 5, db.qdrantUrl);
+//     res.json({ success: true, results });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// });
 
-/* ======================================================
-   🧠 AI ROUTE (UNCHANGED)
-====================================================== */
-router.post("/ask", async (req, res) => {
-  res.json({ success: true, reply: "AI route unchanged" });
-});
-
-/* ======================================================
-   🧠 AI ROUTE (UNCHANGED)
-====================================================== */
 router.post("/ask", async (req, res) => {
   res.json({ success: true, reply: "AI route unchanged" });
 });

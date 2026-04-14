@@ -13,7 +13,7 @@ export default function SideBar({ children }) {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     const navigate = useNavigate();
-    
+
     const handleNavigate = (path) => navigate(path);
 
     useEffect(() => {
@@ -130,9 +130,14 @@ export default function SideBar({ children }) {
                                     Home
                                 </button>
                             </li>
-                            <li>
+                            {/* <li>
                                 <button onClick={() => handleNavigate("/databases")} style={styles.navButton}>
-                                    Databases
+                                    Dashboard
+                                </button>
+                            </li>            */}
+                            <li>
+                                <button onClick={() => handleNavigate("/connectToQdrant")} style={styles.navButton}>
+                                    Qdrant
                                 </button>
                             </li>
                             <li>
@@ -177,7 +182,10 @@ export default function SideBar({ children }) {
                             onClick={async () => {
                                 const { error } = await supabase.auth.signOut();
                                 if (error) alert(error.message);
-                                else navigate("/");
+                                else {
+                                    localStorage.removeItem("userId");
+                                    navigate("/");
+                                }
                             }}
                             style={{ ...styles.navButton, marginTop: "10px", color: "#ff4d4f", fontWeight: "bold" }}
                         >

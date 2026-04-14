@@ -8,9 +8,10 @@ import Chat from "./components/Chat";
 import AccountSettings from "./components/AccountSettings";
 import SideBar from "./components/SideBar";
 import Signup from "./components/Signup";
+import ConnectQdrant from "./components/connectQdrant";
 import { ThemeProvider } from "./components/ThemeContext";
 import QueryEditor from "./components/QueryEditor";
-import AccountResetPage from "./components/AccountResetPage"; // ✅ Added back
+import AccountResetPage from "./components/AccountResetPage";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
 
           {/* Main app pages */}
           <Route path="/connecteddatabase" element={<ConnectedDatabase />} />
+          <Route path="/connectToQdrant" element={<ConnectQdrant />} />
           <Route path="/AIinsights" element={<AI />} />
           <Route path="/NewChat" element={<Chat />} />
           <Route path="/queryeditor" element={<QueryEditor />} />

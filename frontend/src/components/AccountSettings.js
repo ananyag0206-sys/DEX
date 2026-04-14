@@ -57,7 +57,7 @@ export default function AccountSettings() {
             const { error } = await supabase.auth.resetPasswordForEmail(
                 settings.email,
                 {
-                    redirectTo: "http://localhost:3000/account-reset",
+                    redirectTo: `${window.location.origin}/account-reset`,
                 }
             );
             if (error) throw error;
@@ -77,7 +77,7 @@ export default function AccountSettings() {
             setMessage("✅ Password updated successfully!");
             setTimeout(() => {
                 window.location.hash = "";
-                navigate("/login");
+                navigate("/");
             }, 2000);
         }
     };
@@ -179,7 +179,7 @@ export default function AccountSettings() {
                         </button>
                         <button
                             style={styles.secondaryButton}
-                            onClick={() => navigate("/login")}
+                            onClick={() => navigate("/")}
                         >
                             Go Back to Login
                         </button>
