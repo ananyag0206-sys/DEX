@@ -1,0 +1,54 @@
+[
+  {
+    "dbCode": "143",
+    "dbName": "qdrant_1776765182761",
+    "containerId": "dca88dbd8213f736fda48735cf431a54e563d698b678af3e16b55d0d157fdb2c",
+    "port": 6334,
+    "volume": "C:\\Users\\anany\\Downloads\\DEX\\backend\\qdrant_1776765182761",
+    "url": "http://localhost:6334",
+    "metadata": {
+      "customName": "anaya"
+    },
+    "status": "stopped",
+    "createdAt": "2026-04-21T09:53:03.778Z"
+  },
+  {
+    "dbCode": "143",
+    "dbName": "qdrant_1776765196315",
+    "containerId": "81bd94c7d1f2c66ce8f9f5ac82bcfeef3f855bda8da92408d997182a528234c7",
+    "port": 6335,
+    "volume": "C:\\Users\\anany\\Downloads\\DEX\\backend\\qdrant_1776765196315",
+    "url": "http://localhost:6335",
+    "metadata": {
+      "customName": "dkabef"
+    },
+    "status": "stopped",
+    "createdAt": "2026-04-21T09:53:17.388Z"
+  },
+  {
+    "dbCode": "143",
+    "dbName": "qdrant_1776765207699",
+    "containerId": "7c37a8f72bd05e37f9e448880b5c69ebdc7ab5c00e56b69285b9dceaa46a0923",
+    "port": 6333,
+    "volume": "C:\\Users\\anany\\Downloads\\DEX\\backend\\qdrant_1776765207699",
+    "url": "http://localhost:6333",
+    "metadata": {
+      "customName": "efnk"
+    },
+    "status": "stopped",
+    "createdAt": "2026-04-21T09:53:28.669Z"
+  },
+  {
+    "dbCode": "143",
+    "dbName": "qdrant_1776765873355",
+    "containerId": "2137b64a270041553a61c5699d3bc11dbd49fe17a691110ecc5a395d526834c9",
+    "port": 6336,
+    "volume": "C:\\Users\\anany\\Downloads\\DEX\\backend\\qdrant_1776765873355",
+    "url": "http://localhost:6336",
+    "metadata": {
+      "customName": "helloji"
+    },
+    "status": "running",
+    "createdAt": "2026-04-21T10:04:34.577Z"
+  }
+]

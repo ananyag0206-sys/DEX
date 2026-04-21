@@ -4,51 +4,45 @@ const monitoringSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
 
-    // Database type
+    // ✅ Database type: mongo | sql | qdrant
     dbType: {
       type: String,
-      enum: ["mongo", "sql", "qdrant"],
+      enum: [
+        "mongo", // this is fetching the mongo db database and connecting it to the server for frther things 
+
+        "sql",
+        // "qdrant"   // ← commented for now
+      ],
       required: true,
     },
 
-    // Mongo URL (required only if dbType = mongo)
-    mongoUrl: {
-      type: String,
-      required: function () {
-        return this.dbType === "mongo";
-      },
-    },
+    // ✅ Connection URL for the databases that need to be done 
+    // - Mongo → mongodb://...
+    // - SQL   → handled by Prisma
+    // - Qdrant → http://qdrant:6333
+    mongoUrl: { type: String, default: null },  // optional for SQL/Qdrant
+    
+    // qdrantUrl: { type: String, default: null }, // ← Qdrant URL (currently disabled)
 
-    // Qdrant URL (for Qdrant databases)
-    qdrantUrl: { type: String, default: null },
-
-    // Prisma-related (for SQL)
-    schemaPath: {
-      type: String,
-      default: null,
-    },
-    prismaPort: {
-      type: Number,
-      default: null,
-    },
+    // ✅ Prisma-specific (optional for Qdrant)
+    schemaPath: { type: String, default: null },
+    prismaPort: { type: Number, default: null },
 
     userId: { type: String, required: true },
 
-    // Monitoring fields
+    // ✅ Monitoring fields
     status1: { type: String, default: "Unknown" },
     status2: { type: String, default: "Unknown" },
     latency: { type: Number, default: 0 },
-
-    // ✅ Use Date instead of String
     lastUpdate: {
       type: String,
-      default: () => new Date().toLocaleString(),
+      default: () => new Date().toLocaleTimeString(),
     },
 
     analytics: [
       {
-        time: { type: String, default: () => new Date().toLocaleString() },
-        response: { type: Number, default: 0 },
+        time: String,
+        response: Number,
       },
     ],
   },
@@ -57,9 +51,5 @@ const monitoringSchema = new mongoose.Schema(
   }
 );
 
-// Prevent model overwrite error
-const Monitoring =
-  mongoose.models.Monitoring ||
+export default mongoose.models.Monitoring ||
   mongoose.model("Monitoring", monitoringSchema);
-
-export default Monitoring;

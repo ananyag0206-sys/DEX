@@ -1,32 +1,314 @@
 import React, { useEffect, useState, useContext, useCallback } from "react";
-import { Copy, ExternalLink, Plus, Edit, Trash } from "lucide-react";
+import { Copy, ExternalLink, Plus, Edit, Trash, Play, Square, X, Database, Zap } from "lucide-react";
 import SideBar from "./SideBar";
 import { ThemeContext } from "./ThemeContext";
 
 function StatusIndicator({ status }) {
+  const color = status === "Connected" ? "#22c55e" : "#ef4444";
   return (
-    <span
-      style={{
-        display: "inline-block",
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        marginRight: 6,
-        backgroundColor: status === "Connected" ? "#22c55e" : "#ef4444",
-      }}
-    />
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          backgroundColor: color,
+          boxShadow: `0 0 6px ${color}`,
+        }}
+      />
+      <span style={{ fontSize: 12 }}>{status}</span>
+    </div>
   );
 }
 
-/* ---------------- DASHBOARD OPENER ---------------- */
 const openDashboard = (url) => {
   if (!url) return;
-
   const base = url.replace(/\/$/, "");
   window.open(`${base}/dashboard`, "_blank");
 };
 
-function QdrantCard({ node, isDarkMode, onUpdate, onDelete }) {
+const Button = ({ children, onClick, variant = "default" }) => {
+  const styles = {
+    padding: "6px 10px",
+    borderRadius: 8,
+    border: "1px solid transparent",
+    cursor: "pointer",
+    fontSize: 12,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    background:
+      variant === "primary"
+        ? "#48a2ff"
+        : variant === "danger"
+        ? "#ef4444"
+        : "#111827",
+    color: "#fff",
+    transition: "opacity 0.15s",
+  };
+  return (
+    <button
+      onClick={onClick}
+      style={styles}
+      onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+      onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+    >
+      {children}
+    </button>
+  );
+};
+
+/* ── Add Database Modal ── */
+function AddDatabaseModal({ isDarkMode, onClose, onConfirm }) {
+  const [name, setName] = useState("");
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // slight delay so the enter animation plays
+    const t = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 220);
+  };
+
+  const handleConfirm = () => {
+    if (!name.trim()) return;
+    onConfirm(name.trim());
+  };
+
+  const handleKey = (e) => {
+    if (e.key === "Enter") handleConfirm();
+    if (e.key === "Escape") handleClose();
+  };
+
+  const bg = isDarkMode ? "#0f172a" : "#ffffff";
+  const border = isDarkMode ? "#1e293b" : "#e2e8f0";
+  const text = isDarkMode ? "#f1f5f9" : "#0f172a";
+  const sub = isDarkMode ? "#64748b" : "#94a3b8";
+  const inputBg = isDarkMode ? "#020617" : "#f8fafc";
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={handleClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(4px)",
+          zIndex: 1000,
+          opacity: visible ? 1 : 0,
+          transition: "opacity 0.22s ease",
+        }}
+      />
+
+      {/* Modal */}
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: visible
+            ? "translate(-50%, -50%) scale(1)"
+            : "translate(-50%, -48%) scale(0.96)",
+          opacity: visible ? 1 : 0,
+          transition: "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), opacity 0.22s ease",
+          zIndex: 1001,
+          width: 420,
+          maxWidth: "calc(100vw - 32px)",
+          background: bg,
+          border: `1px solid ${border}`,
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: isDarkMode
+            ? "0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(72,162,255,0.08)"
+            : "0 24px 60px rgba(0,0,0,0.15)",
+        }}
+      >
+        {/* Accent strip */}
+        <div
+          style={{
+            height: 3,
+            background: "linear-gradient(90deg, #48a2ff 0%, #a78bfa 50%, #34d399 100%)",
+          }}
+        />
+
+        {/* Header */}
+        <div
+          style={{
+            padding: "20px 20px 0",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Icon badge */}
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 12px rgba(72,162,255,0.35)",
+              }}
+            >
+              <Database size={18} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: text }}>
+                New Qdrant DB
+              </div>
+              <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>
+                Spin up a managed vector DB instance
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleClose}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: sub,
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "20px 20px 0" }}>
+          {/* Info pill */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 12px",
+              borderRadius: 8,
+              background: isDarkMode ? "rgba(72,162,255,0.07)" : "rgba(72,162,255,0.06)",
+              border: `1px solid ${isDarkMode ? "rgba(72,162,255,0.15)" : "rgba(72,162,255,0.2)"}`,
+              marginBottom: 18,
+            }}
+          >
+            <Zap size={13} color="#48a2ff" />
+            <span style={{ fontSize: 11, color: "#48a2ff" }}>
+              Container will be ready in seconds after creation
+            </span>
+          </div>
+
+          {/* Input */}
+          <label
+            style={{
+              display: "block",
+              fontSize: 11,
+              fontWeight: 600,
+              color: sub,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              marginBottom: 6,
+            }}
+          >
+            DB Name
+          </label>
+          <input
+            autoFocus
+            placeholder="e.g. embeddings-prod"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKey}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: `1px solid ${border}`,
+              background: inputBg,
+              color: text,
+              fontSize: 14,
+              outline: "none",
+              transition: "border-color 0.15s",
+            }}
+            onFocus={(e) => (e.target.style.borderColor = "#48a2ff")}
+            onBlur={(e) => (e.target.style.borderColor = border)}
+          />
+
+          {/* Character hint */}
+          <div style={{ fontSize: 11, color: sub, marginTop: 6, textAlign: "right" }}>
+            {name.length}/48
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            padding: "16px 20px 20px",
+            display: "flex",
+            gap: 8,
+            justifyContent: "flex-end",
+          }}
+        >
+          <button
+            onClick={handleClose}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: `1px solid ${border}`,
+              background: "transparent",
+              color: text,
+              fontSize: 13,
+              cursor: "pointer",
+              fontWeight: 500,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!name.trim()}
+            style={{
+              padding: "8px 20px",
+              borderRadius: 8,
+              border: "none",
+              background: name.trim()
+                ? "linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%)"
+                : isDarkMode
+                ? "#1e293b"
+                : "#e2e8f0",
+              color: name.trim() ? "#fff" : sub,
+              fontSize: 13,
+              cursor: name.trim() ? "pointer" : "not-allowed",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              boxShadow: name.trim() ? "0 4px 14px rgba(37,99,235,0.35)" : "none",
+              transition: "all 0.15s",
+            }}
+          >
+            <Plus size={14} />
+            Create Database
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ── QdrantCard (unchanged logic, slight polish) ── */
+function QdrantCard({ node, isDarkMode, onUpdate, onDelete, onStart, onStop }) {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState(node?.name || "");
@@ -38,10 +320,7 @@ function QdrantCard({ node, isDarkMode, onUpdate, onDelete }) {
   };
 
   const handleSaveEdit = async () => {
-    if (!newName?.trim()) {
-      alert("Please enter a valid name.");
-      return;
-    }
+    if (!newName?.trim()) return;
     await onUpdate(node._id, newName);
     setIsEditing(false);
   };
@@ -49,366 +328,126 @@ function QdrantCard({ node, isDarkMode, onUpdate, onDelete }) {
   return (
     <div
       style={{
-        background: isDarkMode ? "#0b1220" : "#f9f9f9",
+        background: isDarkMode ? "#020617" : "#ffffff",
         borderRadius: 12,
-        padding: 10,
-        marginBottom: 8,
-        border: `1px solid ${isDarkMode ? "#ffffff22" : "#00000011"}`,
+        padding: 14,
+        border: `1px solid ${isDarkMode ? "#1e293b" : "#e5e7eb"}`,
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        color: isDarkMode ? "#fff" : "#000",
-        flexWrap: "wrap",
-        gap: "10px"
+        marginBottom: 12,
+        transition: "0.2s",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {isEditing ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8 }}>
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveEdit();
-                if (e.key === "Escape") {
-                  setNewName(node.name || "");
-                  setIsEditing(false);
-                }
-              }}
-              autoFocus
               style={{
-                padding: "6px 8px",
-                borderRadius: 8,
-                border: `1px solid ${isDarkMode ? "#2b2f3a" : "#d1d5db"}`,
-                background: isDarkMode ? "#071025" : "#fff",
+                padding: 6,
+                borderRadius: 6,
+                border: "1px solid #374151",
+                background: "transparent",
                 color: isDarkMode ? "#fff" : "#000",
-                fontWeight: 700,
               }}
             />
-            <button
-              onClick={handleSaveEdit}
-              style={{ padding: "6px 8px", borderRadius: 8, background: "#48a2ff", color: "#fff", border: "none", cursor: "pointer", fontSize: 13 }}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => {
-                setNewName(node.name || "");
-                setIsEditing(false);
-              }}
-              style={{ padding: "6px 8px", borderRadius: 8, background: isDarkMode ? "#374151" : "#e5e7eb", color: isDarkMode ? "#fff" : "#000", border: "none", cursor: "pointer", fontSize: 13 }}
-            >
-              Cancel
-            </button>
+            <Button variant="primary" onClick={handleSaveEdit}>Save</Button>
           </div>
         ) : (
-          <div style={{ fontWeight: 700 }}>{node.name}</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{node.name}</div>
         )}
 
-        <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <span>
-            <StatusIndicator status={node.status1 || node.status} />
-            {node.status1 || node.status || "Unknown"}
-          </span>
-          <span style={{ color: "#9ca3af" }}>{node.qdrantUrl || node.url}</span>
-          {node.lastUpdate && <span style={{ color: "#9ca3af" }}>Updated: {node.lastUpdate}</span>}
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <StatusIndicator status={node.status} />
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>{node.qdrantUrl}</span>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button
-          onClick={handleCopy}
-          style={{
-            padding: "6px 8px",
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: isDarkMode ? "#111827" : "#eef2ff",
-            color: isDarkMode ? "#fff" : "#000",
-            display: "flex",
-            gap: 6,
-            alignItems: "center",
-          }}
-        >
-          <Copy size={14} />
-          {copied ? "Copied" : "Copy"}
-        </button>
-
-        {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            style={{
-              padding: "6px 8px",
-              borderRadius: 8,
-              border: "none",
-              cursor: "pointer",
-              background: isDarkMode ? "#111827" : "#f3f4f6",
-              color: isDarkMode ? "#fff" : "#000",
-              display: "flex",
-              gap: 6,
-              alignItems: "center",
-            }}
-          >
-            <Edit size={14} /> Edit
-          </button>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <Button onClick={handleCopy}>
+          <Copy size={12} /> {copied ? "Copied" : "Copy"}
+        </Button>
+        <Button onClick={() => setIsEditing(true)}>
+          <Edit size={12} />
+        </Button>
+        <Button variant="danger" onClick={() => onDelete(node._id)}>
+          <Trash size={12} />
+        </Button>
+        {node.status === "Connected" ? (
+          <Button onClick={() => onStop(node._id)}>
+            <Square size={12} /> Stop
+          </Button>
+        ) : (
+          <Button onClick={() => onStart(node._id)}>
+            <Play size={12} /> Start
+          </Button>
         )}
-
-        <button
-          onClick={() => onDelete(node._id)}
-          style={{
-            padding: "6px 8px",
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: isDarkMode ? "#111827" : "#fdecea",
-            color: isDarkMode ? "#fff" : "#9b1c1c",
-            display: "flex",
-            gap: 6,
-            alignItems: "center",
-          }}
-        >
-          <Trash size={14} /> Delete
-        </button>
-
-        <button
-          onClick={() => openDashboard(node.qdrantUrl)}
-          style={{
-            padding: "6px 8px",
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: "#48a2ff",
-            color: "#fff",
-            display: "flex",
-            gap: 6,
-            alignItems: "center",
-          }}
-        >
-          <ExternalLink size={14} />
-          Open Dashboard
-        </button>
+        <Button variant="primary" onClick={() => openDashboard(node.qdrantUrl)}>
+          <ExternalLink size={12} />
+        </Button>
       </div>
-    </div >
+    </div>
   );
 }
 
+/* ── Main Page ── */
 export default function ConnectQdrant() {
   const { isDarkMode } = useContext(ThemeContext);
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddDB, setShowAddDB] = useState(false);
-  const [newDBName, setNewDBName] = useState("");
-  const [newDBUrl, setNewDBUrl] = useState("");
-  const [addingDB, setAddingDB] = useState(false);
-const [isMobile, setIsMobile] = useState(false);
-
-useEffect(() => {
-  if (typeof window === "undefined") return;
-
-  const update = () => setIsMobile(window.innerWidth < 768);
-
-  update(); // run once immediately
-  window.addEventListener("resize", update);
-
-  return () => window.removeEventListener("resize", update);
-}, []);
+  const [showModal, setShowModal] = useState(false);
 
   const apiBase = process.env.REACT_APP_API_BASE || "http://localhost:5000";
 
-  /*
-  // Old Fetch Logic:
-  const fetchNodes = async () => {
+  const fetchNodes = useCallback(async () => {
     try {
-      const res = await fetch(`${apiBase}/qdrantdb`);
+      const res = await fetch(`${apiBase}/container/status`);
       const data = await res.json();
-      setNodes(data || []);
+      const mapped = Array.isArray(data)
+  ? data.map((db) => ({
+      _id: db.dbName,
+      name: db.metadata?.customName || db.dbName,
+      qdrantUrl: db.url,
+      status: db.running ? "Connected" : "Disconnected",
+    }))
+  : [];
+      setNodes(mapped);
     } catch (err) {
-      console.error("Failed to fetch Qdrant nodes", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  };
-  */
-
-
-const checkPortHealth = async (url) => {
-  if (!url || typeof url !== "string") return "Disconnected";
-
-  try {
-    const res = await fetch(`${url}/collections`);
-    return res.ok ? "Connected" : "Disconnected";
-  } catch {
-    return "Disconnected";
-  }
-};
-
-
-
- const fetchNodes = useCallback(async () => {
-  try {
-    const userId = localStorage.getItem("userId") || "dummyUserId";
-    const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
-
-    const res = await fetch(`${apiBase}/api/monitoring/all${qs}`);
-    const data = await res.json();
-
-    if (res.ok && data?.success) {
-      const qdrantNodes = (data.data || []).filter(
-        (db) => db.dbType === "qdrant"
-      );
-
-      const updatedNodes = await Promise.all(
-        qdrantNodes.map(async (node) => {
-          const status = await checkPortHealth(node.qdrantUrl || node.url);
-
-          return {
-            ...node,
-            status1: status,
-            lastUpdate: new Date().toISOString(),
-          };
-        })
-      );
-
-      setNodes(updatedNodes);
-    }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-}, [apiBase]);
+  }, [apiBase]);
 
   useEffect(() => {
-  fetchNodes();
+    fetchNodes();
+    const interval = setInterval(fetchNodes, 5000);
+    return () => clearInterval(interval);
+  }, [fetchNodes]);
 
-  const interval = setInterval(fetchNodes, 10000);
-
-  return () => clearInterval(interval);
-}, [fetchNodes]);
-
-  const handleAddDatabase = async () => {
-    if (!newDBName.trim()) return alert("Database Name required");
-    if (!newDBUrl.trim()) return alert("Qdrant URL required");
-    if (!newDBUrl.includes(":")) {
-      return alert("Please include port in URL (example: http://localhost:6337)");
-    }
-
-    setAddingDB(true);
-    try {
-      const userId = localStorage.getItem("userId") || "dummyUserId";
-      const payload = {
-        name: newDBName,
-        dbType: "qdrant",
-        qdrantUrl: newDBUrl,
-        userId,
-      };
-
-      const res = await fetch(`${apiBase}/api/monitoring/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setNodes((prev) => [...prev, data.db]);
-        setShowAddDB(false);
-        setNewDBName("");
-        setNewDBUrl("");
-      } else {
-        alert(`Failed to add: ${data.error || data.message || "Unknown error"}`);
-      }
-    } catch (err) {
-      alert("Error adding database.");
-      console.error(err);
-    } finally {
-      setAddingDB(false);
-    }
-  };
-
-  const handleUpdate = async (id, name) => {
-    try {
-      const userId = localStorage.getItem("userId") || "dummyUserId";
-      const res = await fetch(`${apiBase}/api/monitoring/update/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, userId }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setNodes((prev) => prev.map((n) => (n._id === id ? { ...n, name } : n)));
-      } else {
-        alert("Update failed");
-      }
-    } catch (err) {
-      console.error("Update error:", err);
-      alert("Update error");
-    }
-  };
-
-  const handleDelete = async (id) => {
-    const prev = nodes;
-
-    // 🔥 OPTIMISTIC UI UPDATE
-    setNodes((prevNodes) => prevNodes.filter((n) => n._id !== id));
-
-    try {
-      const res = await fetch(`${apiBase}/api/monitoring/delete/${id}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setNodes(prev); // rollback
-        alert("Delete failed");
-      }
-    } catch (err) {
-      setNodes(prev); // rollback
-      console.error(err);
-      alert("Delete error");
-    }
+  const handleAddDatabase = async (name) => {
+    await fetch(`${apiBase}/container/143`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dbMetadata: { customName: name } }),
+    });
+    setShowModal(false);
+    fetchNodes();
   };
 
   return (
     <SideBar>
-      <div
-        style={{
-          padding: 12,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          minHeight: "100vh",
-          background: isDarkMode ? "rgba(10,12,18,0.6)" : "#f8fafc",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-          <h2 style={{ color: "#48a2ff", margin: 0 }}>Connected Qdrant Nodes</h2>
-          <button
-            onClick={() => setShowAddDB(true)}
-            style={{
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: `1px solid ${isDarkMode ? "#2b2f3a" : "#e5e7eb"}`,
-              background: isDarkMode ? "#0b1220" : "#fff",
-              cursor: "pointer",
-              color: isDarkMode ? "#fff" : "#000",
-            }}
-          >
-            <Plus size={14} /> Add Qdrant Node
-          </button>
+      <div style={{ padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+          <h2 style={{ color: "#48a2ff" }}>Qdrant Containers</h2>
+          <Button variant="primary" onClick={() => setShowModal(true)}>
+            <Plus size={14} /> Add
+          </Button>
         </div>
 
-        {loading && <div style={{ color: isDarkMode ? "#fff" : "#000" }}>Loading nodes...</div>}
-
-        {!loading && nodes.length === 0 && (
-          <div style={{ color: isDarkMode ? "#aaa" : "#555" }}>
-            No Qdrant nodes found. Click "Add Qdrant Node" to connect your first database.
-          </div>
-        )}
+        {loading && <div>Loading...</div>}
 
         {!loading &&
           nodes.map((node) => (
@@ -416,100 +455,37 @@ const checkPortHealth = async (url) => {
               key={node._id}
               node={node}
               isDarkMode={isDarkMode}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
+              onUpdate={async (id, name) => {
+                await fetch(`${apiBase}/container/${id}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name }),
+                });
+                fetchNodes();
+              }}
+              onDelete={async (id) => {
+                await fetch(`${apiBase}/container/${id}`, { method: "DELETE" });
+                fetchNodes();
+              }}
+              onStart={async (id) => {
+                await fetch(`${apiBase}/container/start/${id}`, { method: "POST" });
+                fetchNodes();
+              }}
+              onStop={async (id) => {
+                await fetch(`${apiBase}/container/stop/${id}`, { method: "POST" });
+                fetchNodes();
+              }}
             />
           ))}
-
-        {/* Add DB Modal */}
-        {showAddDB && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.6)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 200,
-            }}
-          >
-            <div
-              style={{
-                background: isDarkMode ? "#0b1220" : "#fff",
-                padding: 20,
-                borderRadius: 12,
-                width: isMobile ? "92%" : 420,
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
-              <h3 style={{ margin: 0, color: "#48a2ff" }}>Add Qdrant Node</h3>
-
-              <input
-                placeholder="Database Name (e.g., Qdrant-Node-1)"
-                value={newDBName}
-                onChange={(e) => setNewDBName(e.target.value)}
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
-                  background: isDarkMode ? "#071025" : "#f9fafb",
-                  color: isDarkMode ? "#fff" : "#000",
-                }}
-              />
-
-              <input
-                placeholder="Qdrant URL (e.g., http://localhost:6333)"
-                value={newDBUrl}
-                onChange={(e) => setNewDBUrl(e.target.value)}
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
-                  background: isDarkMode ? "#071025" : "#f9fafb",
-                  color: isDarkMode ? "#fff" : "#000",
-                }}
-              />
-
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>
-                <button
-                  onClick={() => setShowAddDB(false)}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: isDarkMode ? "#1f2937" : "#e5e7eb",
-                    color: isDarkMode ? "#fff" : "#000",
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddDatabase}
-                  disabled={addingDB}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "#48a2ff",
-                    color: "#fff",
-                    cursor: "pointer",
-                    opacity: addingDB ? 0.7 : 1,
-                  }}
-                >
-                  {addingDB ? "Adding..." : "Add"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {showModal && (
+        <AddDatabaseModal
+          isDarkMode={isDarkMode}
+          onClose={() => setShowModal(false)}
+          onConfirm={handleAddDatabase}
+        />
+      )}
     </SideBar>
   );
 }

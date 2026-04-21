@@ -135,9 +135,7 @@ router.post("/add", async (req, res) => {
       }
 
       if (schemaPath) {
-        const schemaDir = path.dirname(schemaPath);
-        const schemaFile = path.basename(schemaPath);
-        exec(`cd "${path.join(process.cwd(), schemaDir)}" && npx prisma studio --port ${assignedPort} --schema="${schemaFile}" --hostname=0.0.0.0`, (err, stdout, stderr) => {
+        exec(`npx prisma studio --port ${assignedPort}`, (err, stdout, stderr) => {
           if (err) console.error("❌ Prisma Exec Error:", err.message);
           if (stdout) console.log("Prisma Stdout:", stdout);
           if (stderr) console.error("Prisma Stderr:", stderr);
@@ -146,9 +144,10 @@ router.post("/add", async (req, res) => {
     }
 
     if (dbType === "qdrant") {
-      const r = await checkQdrantLatency(qdrantUrl);
-      status = r.status;
-      latency = r.latency;
+      return res.status(400).json({
+        success: false,
+        error: "Qdrant database type is not enabled (schema supports mongo and sql only).",
+      });
     }
 
     const newDB = await Monitoring.create({
@@ -162,8 +161,8 @@ router.post("/add", async (req, res) => {
       status1: status,
       status2: status,
       latency,
-      lastUpdate: new Date(),
-      analytics: [{ time: new Date(), response: latency }],
+      lastUpdate: new Date().toLocaleTimeString(),
+      analytics: [{ time: new Date().toLocaleTimeString(), response: latency }],
     });
 
     res.json({ success: true, db: newDB });
@@ -203,21 +202,11 @@ router.get("/open/:id", async (req, res) => {
     if (!db || !db.prismaPort)
       return res.status(404).json({ error: "Prisma not configured" });
 
-    if (db.schemaPath) {
-      const schemaDir = path.dirname(db.schemaPath);
-      const schemaFile = path.basename(db.schemaPath);
-      exec(`cd "${path.join(process.cwd(), schemaDir)}" && npx prisma studio --port ${db.prismaPort} --schema="${schemaFile}" --hostname=0.0.0.0`, (err, stdout, stderr) => {
-        if (err) console.error("❌ Prisma Exec Error:", err.message);
-        if (stdout) console.log("Prisma Stdout:", stdout);
-        if (stderr) console.error("Prisma Stderr:", stderr);
-      });
-    } else {
-      exec(`npx prisma studio --port ${db.prismaPort} --hostname=0.0.0.0`, (err, stdout, stderr) => {
-        if (err) console.error("❌ Prisma Exec Error:", err.message);
-        if (stdout) console.log("Prisma Stdout:", stdout);
-        if (stderr) console.error("Prisma Stderr:", stderr);
-      });
-    }
+    exec(`npx prisma studio --port ${db.prismaPort}`, (err, stdout, stderr) => {
+      if (err) console.error("❌ Prisma Exec Error:", err.message);
+      if (stdout) console.log("Prisma Stdout:", stdout);
+      if (stderr) console.error("Prisma Stderr:", stderr);
+    });
 
     res.json({ success: true, url: `http://localhost:${db.prismaPort}` });
   } catch (err) {
@@ -247,8 +236,8 @@ router.get("/metrics", async (req, res) => {
     }
 
     await Monitoring.findByIdAndUpdate(db._id, {
-      $push: { analytics: { time: new Date(), response: r.latency } },
-      $set: { status1: r.status, status2: r.status, latency: r.latency, lastUpdate: new Date() },
+      $push: { analytics: { time: new Date().toLocaleTimeString(), response: r.latency } },
+      $set: { status1: r.status, status2: r.status, latency: r.latency, lastUpdate: new Date().toLocaleTimeString() },
     });
   }
 

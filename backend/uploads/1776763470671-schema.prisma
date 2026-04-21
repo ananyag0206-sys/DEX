@@ -1,5 +1,6 @@
 // =======================================
-// 🚀 FINAL CLEAN + ERROR-FREE SCHEMA
+// 📘 Prisma Schema — Contact Management System
+// Database: MongoDB (Docker + Prisma Studio Ready)
 // =======================================
 
 generator client {
@@ -12,25 +13,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =========================
 // 👤 USER MODEL
-// =========================
+// Each user can manage multiple contacts
 model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   email     String   @unique
   password  String
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // ✅ MUST HAVE (fix)
+  // Relations
   contacts  Contact[] @relation("UserContacts")
 }
 
-// =========================
 // 📇 CONTACT MODEL
-// =========================
+// Stores individual contacts belonging to a specific user
 model Contact {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   firstName String
@@ -40,57 +38,50 @@ model Contact {
   address   String?
   company   String?
   notes     String?
-
   favorite  Boolean  @default(false)
   tags      String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  deletedAt DateTime?
 
-  createdBy String? @db.ObjectId
-  updatedBy String? @db.ObjectId
-
-  // ✅ RELATION (MATCHED)
-  userId String @db.ObjectId
-  user   User   @relation("UserContacts", fields: [userId], references: [id])
-
+  // Relations
+  userId        String         @db.ObjectId
+  user          User           @relation("UserContacts", fields: [userId], references: [id])
   contactGroups ContactGroup[] @relation("ContactToGroups")
-
-  @@index([userId])
-  @@index([email])
-  @@index([phone])
-  @@index([favorite])
 }
 
-// =========================
 // 📂 GROUP MODEL
-// =========================
+// Used to organize contacts
 model Group {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique
   color     String?
-
   createdAt DateTime @default(now())
-  deletedAt DateTime?
 
+  // Relations
   contacts ContactGroup[] @relation("GroupToContacts")
 }
 
-// =========================
-// 🔗 CONTACT-GROUP MODEL
-// =========================
+// 🔗 INTERMEDIATE MODEL
+// Many-to-Many between Contact and Group
 model ContactGroup {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
   contactId String @db.ObjectId
   groupId   String @db.ObjectId
 
-  contact Contact @relation("ContactToGroups", fields: [contactId], references: [id], onDelete: Cascade)
-  group   Group   @relation("GroupToContacts", fields: [groupId], references: [id], onDelete: Cascade)
+  // Relations
+  contact Contact @relation(
+    "ContactToGroups",
+    fields: [contactId],
+    references: [id]
+  )
 
-  createdAt DateTime @default(now())
+  group Group @relation(
+    "GroupToContacts",
+    fields: [groupId],
+    references: [id]
+  )
 
+  // Prevent duplicate contact-group links
   @@unique([contactId, groupId])
-  @@index([contactId])
-  @@index([groupId])
 }
