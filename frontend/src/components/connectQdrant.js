@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useCallback } from "react";
 import { Copy, ExternalLink, Plus, Edit, Trash } from "lucide-react";
 import SideBar from "./SideBar";
 import { ThemeContext } from "./ThemeContext";
@@ -12,19 +12,27 @@ function StatusIndicator({ status }) {
         height: 8,
         borderRadius: "50%",
         marginRight: 6,
-        backgroundColor: status === "Connected" || status === "running" ? "#22c55e" : "#ef4444",
+        backgroundColor: status === "Connected" ? "#22c55e" : "#ef4444",
       }}
     />
   );
 }
 
+/* ---------------- DASHBOARD OPENER ---------------- */
+const openDashboard = (url) => {
+  if (!url) return;
+
+  const base = url.replace(/\/$/, "");
+  window.open(`${base}/dashboard`, "_blank");
+};
+
 function QdrantCard({ node, isDarkMode, onUpdate, onDelete }) {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [newName, setNewName] = useState(node.name || "");
+  const [newName, setNewName] = useState(node?.name || "");
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(node.qdrantUrl || node.url || "");
+    await navigator.clipboard.writeText(node.qdrantUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -163,7 +171,7 @@ function QdrantCard({ node, isDarkMode, onUpdate, onDelete }) {
         </button>
 
         <button
-          onClick={() => window.open((node.qdrantUrl || node.url)+"/dashboard", "_blank")}
+          onClick={() => openDashboard(node.qdrantUrl)}
           style={{
             padding: "6px 8px",
             borderRadius: 8,
@@ -180,7 +188,7 @@ function QdrantCard({ node, isDarkMode, onUpdate, onDelete }) {
           Open Dashboard
         </button>
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -190,9 +198,20 @@ export default function ConnectQdrant() {
   const [loading, setLoading] = useState(true);
   const [showAddDB, setShowAddDB] = useState(false);
   const [newDBName, setNewDBName] = useState("");
-  const [newDBUrl, setNewDBUrl] = useState("http://localhost:6333");
+  const [newDBUrl, setNewDBUrl] = useState("");
   const [addingDB, setAddingDB] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  if (typeof window === "undefined") return;
+
+  const update = () => setIsMobile(window.innerWidth < 768);
+
+  update(); // run once immediately
+  window.addEventListener("resize", update);
+
+  return () => window.removeEventListener("resize", update);
+}, []);
 
   const apiBase = process.env.REACT_APP_API_BASE || "http://localhost:5000";
 
@@ -211,39 +230,68 @@ export default function ConnectQdrant() {
   };
   */
 
-  const fetchNodes = async () => {
-    try {
-      const userId = localStorage.getItem("userId") || "dummyUserId";
-      const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
-      const res = await fetch(`${apiBase}/api/monitoring/all${qs}`);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        // Filter out only qdrant databases
-        const qdrantNodes = data.data.filter(db => db.dbType === "qdrant");
-        setNodes(qdrantNodes || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch Qdrant nodes", err);
-    } finally {
-      setLoading(false);
+
+const checkPortHealth = async (url) => {
+  if (!url || typeof url !== "string") return "Disconnected";
+
+  try {
+    const res = await fetch(`${url}/collections`);
+    return res.ok ? "Connected" : "Disconnected";
+  } catch {
+    return "Disconnected";
+  }
+};
+
+
+
+ const fetchNodes = useCallback(async () => {
+  try {
+    const userId = localStorage.getItem("userId") || "dummyUserId";
+    const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+
+    const res = await fetch(`${apiBase}/api/monitoring/all${qs}`);
+    const data = await res.json();
+
+    if (res.ok && data?.success) {
+      const qdrantNodes = (data.data || []).filter(
+        (db) => db.dbType === "qdrant"
+      );
+
+      const updatedNodes = await Promise.all(
+        qdrantNodes.map(async (node) => {
+          const status = await checkPortHealth(node.qdrantUrl || node.url);
+
+          return {
+            ...node,
+            status1: status,
+            lastUpdate: new Date().toISOString(),
+          };
+        })
+      );
+
+      setNodes(updatedNodes);
     }
-  };
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}, [apiBase]);
 
   useEffect(() => {
-    fetchNodes();
-    const interval = setInterval(fetchNodes, 10000); // refresh every 10s
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
+  fetchNodes();
 
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("resize", handleResize);
-    }
-  }, []);
+  const interval = setInterval(fetchNodes, 10000);
+
+  return () => clearInterval(interval);
+}, [fetchNodes]);
 
   const handleAddDatabase = async () => {
     if (!newDBName.trim()) return alert("Database Name required");
     if (!newDBUrl.trim()) return alert("Qdrant URL required");
+    if (!newDBUrl.includes(":")) {
+      return alert("Please include port in URL (example: http://localhost:6337)");
+    }
 
     setAddingDB(true);
     try {
@@ -266,7 +314,7 @@ export default function ConnectQdrant() {
         setNodes((prev) => [...prev, data.db]);
         setShowAddDB(false);
         setNewDBName("");
-        setNewDBUrl("http://localhost:6333");
+        setNewDBUrl("");
       } else {
         alert(`Failed to add: ${data.error || data.message || "Unknown error"}`);
       }
@@ -299,17 +347,25 @@ export default function ConnectQdrant() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this Qdrant node?")) return;
+    const prev = nodes;
+
+    // 🔥 OPTIMISTIC UI UPDATE
+    setNodes((prevNodes) => prevNodes.filter((n) => n._id !== id));
+
     try {
-      const res = await fetch(`${apiBase}/api/monitoring/delete/${id}`, { method: "DELETE" });
+      const res = await fetch(`${apiBase}/api/monitoring/delete/${id}`, {
+        method: "DELETE",
+      });
+
       const data = await res.json();
-      if (res.ok && data.success) {
-        setNodes((prev) => prev.filter((d) => d._id !== id));
-      } else {
+
+      if (!res.ok || !data.success) {
+        setNodes(prev); // rollback
         alert("Delete failed");
       }
     } catch (err) {
-      console.error("Delete error:", err);
+      setNodes(prev); // rollback
+      console.error(err);
       alert("Delete error");
     }
   };
@@ -357,7 +413,7 @@ export default function ConnectQdrant() {
         {!loading &&
           nodes.map((node) => (
             <QdrantCard
-              key={node._id || node.url}
+              key={node._id}
               node={node}
               isDarkMode={isDarkMode}
               onUpdate={handleUpdate}

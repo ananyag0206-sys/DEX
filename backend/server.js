@@ -22,7 +22,7 @@ app.use(bodyParser.json());
 // Connect MongoDB
 connectDB();
 
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/uploads", express.static(path.join("C:\\Users\\anany\\Downloads\\DEX\\backend", "uploads")));
 
 // Root Route
 app.get("/", (req, res) => {
@@ -117,18 +117,37 @@ async function autoRefresh() {
         latency = r.latency;
       }
 
-      if (db.dbType === "qdrant") {
-        try {
-          const start = Date.now();
-          await fetch(`${db.qdrantUrl || "http://localhost:6333"}/collections`);
-          status = "Connected";
-          latency = Date.now() - start;
-        } catch (err) {
-          console.error("⚠️ Qdrant Ping Error:", err.message);
-          status = "Disconnected";
-          latency = 0;
-        }
-      }
+if (db.dbType === "qdrant") {
+  let status = "Disconnected";
+  let latency = 0;
+
+  const startAll = Date.now();
+
+  // Try all ports 6333 → 6339
+  for (let port = 6333; port <= 6339; port++) {
+    try {
+      const start = Date.now();
+
+      await fetch(`http://localhost:${port}/collections`);
+
+      status = `Connected (port ${port})`;
+      latency = Date.now() - start;
+
+      // Save which port is working
+      db.qdrantUrl = `http://localhost:${port}`;
+
+      break; // stop after first success
+    } catch (err) {
+      console.log(`⚠️ Qdrant not running on port ${port}`);
+    }
+  }
+
+  // If none worked
+  if (status === "Disconnected") {
+    console.log("❌ No Qdrant instance found from 6333–6339");
+    latency = Date.now() - startAll;
+  }
+}
 
       db.status1 = status;
       db.status2 = status;
@@ -142,7 +161,12 @@ async function autoRefresh() {
 
       if (db.analytics.length > 20) db.analytics.shift();
 
-      await db.save();
+      try {
+        await db.save();
+      } catch (saveError) {
+        console.error("❌ Failed to save database:", db.name || db._id, saveError.message);
+        // Skip this database to avoid blocking others
+      }
     }
 
     console.log("🔁 Auto-monitoring updated");

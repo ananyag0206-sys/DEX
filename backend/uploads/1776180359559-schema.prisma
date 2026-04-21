@@ -1,0 +1,102 @@
+// =======================================
+// 🚀 FINAL PRODUCTION-READY CONTACT SYSTEM
+// ✅ ERROR-FREE
+// =======================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["mongoDb"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// =========================
+// 👤 USER MODEL
+// =========================
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  password  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ✅ FIX: ADD THIS
+  contacts  Contact[]
+}
+
+// =========================
+// 📇 CONTACT MODEL
+// =========================
+model Contact {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  firstName String
+  lastName  String?
+  email     String?
+  phone     String?
+  address   String?
+  company   String?
+  notes     String?
+
+  favorite  Boolean  @default(false)
+  tags      String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Audit
+  createdBy String? @db.ObjectId
+  updatedBy String? @db.ObjectId
+
+  // ✅ RELATION (MATCHES USER)
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  contactGroups ContactGroup[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([phone])
+  @@index([favorite])
+}
+
+// =========================
+// 📂 GROUP MODEL
+// =========================
+model Group {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  color     String?
+
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  contacts ContactGroup[]
+
+  @@index([name])
+}
+
+// =========================
+// 🔗 CONTACT-GROUP MODEL
+// =========================
+model ContactGroup {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+
+  contactId String @db.ObjectId
+  groupId   String @db.ObjectId
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  group     Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([contactId, groupId])
+  @@index([contactId])
+  @@index([groupId])
+}

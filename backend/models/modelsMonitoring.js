@@ -41,13 +41,13 @@ const monitoringSchema = new mongoose.Schema(
 
     // ✅ Use Date instead of String
     lastUpdate: {
-      type: Date,
-      default: Date.now,
+      type: String,
+      default: () => new Date().toLocaleString(),
     },
 
     analytics: [
       {
-        time: { type: Date, default: Date.now },
+        time: { type: String, default: () => new Date().toLocaleString() },
         response: { type: Number, default: 0 },
       },
     ],

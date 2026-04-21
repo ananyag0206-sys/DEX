@@ -395,7 +395,9 @@ export default function ConnectedDatabase() {
       const res = await fetch(`${API_BASE}/all${qs}`);
       const json = await res.json();
       if (res.ok && json.success) {
-        setDbList(json.data || []);
+        // Filter out Qdrant databases - only show MongoDB/SQL databases
+        const filteredData = (json.data || []).filter(db => db.dbType !== "qdrant");
+        setDbList(filteredData);
         // metrics from first DB
         const first = (json.data && json.data[0]) || null;
         if (first && Array.isArray(first.analytics)) {
@@ -486,7 +488,7 @@ export default function ConnectedDatabase() {
 
       const payload = {
         name: newDBName,
-        dbType: "sql",
+        dbType: "mongo",
         mongoUrl: newDBUrl,
         schemaPath: schemaPathToSend,
         prismaPort: Number(newPrismaPort),
@@ -574,30 +576,55 @@ export default function ConnectedDatabase() {
   };
 
   // ---------- Open Prisma Studio ----------
-  // Calls backend GET /open/:id which returns { url }
+  // Enhanced to automatically start Prisma Studio if not running
   const handleOpenPrisma = async (db) => {
     if (!db._id) return;
+    
+    const openPrismaWindow = (port) => {
+      const url = `http://localhost:${port}`;
+      window.open(url, "_blank");
+    };
+
     try {
-      // if db.prismaPort exists locally, attempt direct open first (fast)
+      // First try direct access if port is available
       if (db.prismaPort) {
-        const url = `http://localhost:${db.prismaPort}`;
-        // open in new tab
-        window.open(url, "_blank");
+        openPrismaWindow(db.prismaPort);
+        
+        // Also try to start Prisma Studio via backend if it might not be running
+        setTimeout(async () => {
+          try {
+            await fetch(`${API_BASE}/open/${db._id}`);
+          } catch {
+            // Silent fail - we already opened the window
+          }
+        }, 1000);
+        
         return;
       }
 
-      // otherwise ask backend for the URL
+      // If no port, ask backend to start Prisma Studio
       const res = await fetch(`${API_BASE}/open/${db._id}`);
       const data = await res.json();
       const openUrl = data.url || data.prismaUrl;
+      
       if (res.ok && data.success && openUrl) {
         window.open(openUrl, "_blank");
       } else {
-        alert("Prisma URL not available for this database.");
+        // If backend can't start it, try to start manually
+        if (db.prismaPort) {
+          openPrismaWindow(db.prismaPort);
+        } else {
+          alert("Prisma Studio is not configured for this database. Please add a Prisma port and schema.");
+        }
       }
     } catch (err) {
       console.error("Open Prisma error:", err);
-      alert("Failed to open Prisma Studio. Is it running?");
+      // Fallback: try direct port access
+      if (db.prismaPort) {
+        openPrismaWindow(db.prismaPort);
+      } else {
+        alert("Failed to open Prisma Studio. Please ensure Prisma is configured with a port and schema file.");
+      }
     }
   };
 
@@ -754,18 +781,18 @@ export default function ConnectedDatabase() {
                 }}
               />
 
-              <input
-                placeholder="Database URL (e.g., mongodb://localhost:27017)"
-                value={newDBUrl}
-                onChange={(e) => setNewDBUrl(e.target.value)}
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
-                  background: isDarkMode ? "#071025" : "#f9fafb",
-                  color: isDarkMode ? "#fff" : "#000",
-                }}
-              />
+               <input
+                 placeholder="MongoDB URL (e.g., mongodb://localhost:27017/mydb)"
+                 value={newDBUrl}
+                 onChange={(e) => setNewDBUrl(e.target.value)}
+                 style={{
+                   padding: 10,
+                   borderRadius: 8,
+                   border: `1px solid ${isDarkMode ? "#1f2937" : "#e5e7eb"}`,
+                   background: isDarkMode ? "#071025" : "#f9fafb",
+                   color: isDarkMode ? "#fff" : "#000",
+                 }}
+               />
 
               {/* File upload / drag drop */}
               <div

@@ -1,0 +1,82 @@
+//
+// 🏥 Prisma + MongoDB Schema — Hospital Management System
+//
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL") // MongoDB connection string
+}
+
+//
+// 👩‍⚕️ DOCTOR MODEL
+//
+model Doctor {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  email           String          @unique
+  specialization  String
+  phone           String?
+  experience      Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  appointments    Appointment[]
+}
+
+//
+// 🧑‍🤝‍🧑 PATIENT MODEL
+//
+model Patient {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  email           String?          @unique
+  phone           String?
+  address         String?
+  age             Int?
+  gender          String?          // e.g., "Male", "Female", "Other"
+  bloodGroup      String?          // e.g., "A+", "O-", etc.
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  appointments    Appointment[]
+  records         MedicalRecord[]
+}
+
+//
+// 📅 APPOINTMENT MODEL
+//
+model Appointment {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  date            DateTime
+  reason          String?
+  status          String        @default("Scheduled") // Scheduled | Completed | Cancelled
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  doctorId        String        @db.ObjectId
+  patientId       String        @db.ObjectId
+
+  // Relations
+  doctor          Doctor        @relation(fields: [doctorId], references: [id])
+  patient         Patient       @relation(fields: [patientId], references: [id])
+}
+
+//
+// 📄 MEDICAL RECORD MODEL
+//
+model MedicalRecord {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  description     String
+  diagnosis       String?
+  prescription    String?
+  date            DateTime      @default(now())
+
+  patientId       String        @db.ObjectId
+  patient         Patient       @relation(fields: [patientId], references: [id])
+}

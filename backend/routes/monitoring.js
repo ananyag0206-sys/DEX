@@ -135,7 +135,9 @@ router.post("/add", async (req, res) => {
       }
 
       if (schemaPath) {
-        exec(`npx prisma studio --port ${assignedPort}`, (err, stdout, stderr) => {
+        const schemaDir = path.dirname(schemaPath);
+        const schemaFile = path.basename(schemaPath);
+        exec(`cd "${path.join(process.cwd(), schemaDir)}" && npx prisma studio --port ${assignedPort} --schema="${schemaFile}" --hostname=0.0.0.0`, (err, stdout, stderr) => {
           if (err) console.error("❌ Prisma Exec Error:", err.message);
           if (stdout) console.log("Prisma Stdout:", stdout);
           if (stderr) console.error("Prisma Stderr:", stderr);
@@ -201,11 +203,21 @@ router.get("/open/:id", async (req, res) => {
     if (!db || !db.prismaPort)
       return res.status(404).json({ error: "Prisma not configured" });
 
-    exec(`npx prisma studio --port ${db.prismaPort}`, (err, stdout, stderr) => {
-      if (err) console.error("❌ Prisma Exec Error:", err.message);
-      if (stdout) console.log("Prisma Stdout:", stdout);
-      if (stderr) console.error("Prisma Stderr:", stderr);
-    });
+    if (db.schemaPath) {
+      const schemaDir = path.dirname(db.schemaPath);
+      const schemaFile = path.basename(db.schemaPath);
+      exec(`cd "${path.join(process.cwd(), schemaDir)}" && npx prisma studio --port ${db.prismaPort} --schema="${schemaFile}" --hostname=0.0.0.0`, (err, stdout, stderr) => {
+        if (err) console.error("❌ Prisma Exec Error:", err.message);
+        if (stdout) console.log("Prisma Stdout:", stdout);
+        if (stderr) console.error("Prisma Stderr:", stderr);
+      });
+    } else {
+      exec(`npx prisma studio --port ${db.prismaPort} --hostname=0.0.0.0`, (err, stdout, stderr) => {
+        if (err) console.error("❌ Prisma Exec Error:", err.message);
+        if (stdout) console.log("Prisma Stdout:", stdout);
+        if (stderr) console.error("Prisma Stderr:", stderr);
+      });
+    }
 
     res.json({ success: true, url: `http://localhost:${db.prismaPort}` });
   } catch (err) {
